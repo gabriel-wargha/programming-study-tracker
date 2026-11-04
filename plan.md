@@ -219,6 +219,7 @@ Create tables in the phase that needs them. All tables include `created_at`. Tab
 **`profiles` (Phase 1)**
 
 - `id`: `uuid`, primary key, references `auth.users`
+- `user_id`: `uuid`, unique and required, references `auth.users`; a check requires `user_id = id` so owner-only RLS follows `AGENTS.md`
 - `display_name`: `text`
 - `github_username`: `text`
 - `active_goal_limit`: `smallint`, default 3, from 1 to 10
@@ -473,6 +474,12 @@ npx create-next-app@latest app-temp --typescript --tailwind --eslint --app --src
 
 **Done when:** The owner can sign in with GitHub, reach an empty dashboard, and sign out. Signed-out visitors are redirected to `/login`.
 
+**Prepared November 4, 2026:** Login and sign-out form components with pending and error states; public Supabase configuration validation; a profiles migration with owner-only read/update policies, restricted column grants, a new-user trigger, and a shared update timestamp trigger; 16 pgTAP assertions; a guarded local test-user fixture; and `npm run db:types` for generating types without erasing an existing type file on failure. The auth components are not yet mounted as routes. No Phase 1 task is marked complete until its integration checks pass.
+
+**Validation:** Lint, type checking, all 24 unit/component tests, and the production build pass. Attempts to run `supabase db reset`, `supabase test db`, database type generation, and Playwright could not proceed because their tools are not installed. The local test-user fixture is unit-tested with mocked Auth responses; a real test user has not been created.
+
+**Blocked prerequisites:** The Supabase SDKs and CLI and Playwright are not installed. The attempted SDK installation failed because npm registry DNS is unavailable; the database reset could not run because the CLI is not installed or cached. The session also cannot access Docker's socket. Browser/server/proxy clients, OAuth routes, protected layout, and generated database types are still pending. The owner has been asked to install the packages, initialize/start local Supabase, and create the local GitHub OAuth app. No schema has been applied or database types generated.
+
 ### Phase 2: Topics and goals
 
 - [ ] Create `topics`, `goals`, their enums, RLS policies, and indexes.
@@ -597,6 +604,8 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-04 | Use Node.js 22.15.0 for the initial development setup | The selected Vitest and jsdom versions need newer Node.js than the framework's 20.9 minimum; this version is already installed |
 | 2026-11-04 | Use the supported Next.js Webpack production build and Tailwind PostCSS integration | The agent sandbox blocks Turbopack's worker port; the Webpack production build passes |
 | 2026-11-04 | Use system fonts for the initial starter | The app can build without downloading fonts in a network-restricted environment |
+| 2026-11-04 | Keep `profiles.id` and add a constrained `user_id` | This preserves the planned Auth primary key while meeting the owner-column and RLS rules in `AGENTS.md` |
+| 2026-11-04 | Create browser test users through local Auth, with no application login bypass | The test-only helper rejects hosted targets, Vercel, and production execution before issuing a request |
 
 ## 15. Ideas for later
 

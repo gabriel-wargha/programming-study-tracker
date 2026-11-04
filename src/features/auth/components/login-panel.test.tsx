@@ -9,7 +9,9 @@ import type { AuthActionState } from "@/features/auth/schemas";
 test("GitHub sign-in has a pending state and displays an expected failure", async () => {
   const user = userEvent.setup();
   let settle: ((state: AuthActionState) => void) | undefined;
-  const action = vi.fn(() => new Promise<AuthActionState>((resolve) => { settle = resolve; }));
+  const action = vi.fn<(state: AuthActionState, formData: FormData) => Promise<AuthActionState>>(
+    () => new Promise<AuthActionState>((resolve) => { settle = resolve; }),
+  );
   render(<LoginPanel action={action} />);
 
   const button = screen.getByRole("button", { name: "Continue with GitHub" });
@@ -17,7 +19,7 @@ test("GitHub sign-in has a pending state and displays an expected failure", asyn
   expect(button).toHaveFocus();
   await user.keyboard("{Enter}");
   expect(screen.getByRole("button", { name: "Connecting to GitHub…" })).toBeDisabled();
-  expect(action.mock.calls[0]).toBeDefined();
+  expect(action.mock.calls[0][1].get("intent")).toBe("github");
 
   await act(async () => { settle?.({ ok: false, error: "Please try signing in again." }); });
   expect(screen.getByRole("alert")).toHaveTextContent("Please try signing in again.");

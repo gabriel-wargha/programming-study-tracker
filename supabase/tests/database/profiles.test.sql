@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(16);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -17,8 +17,11 @@ select is((select active_goal_limit::integer from public.profiles
   where id = '11111111-1111-4111-8111-111111111111'), 3,
   'The active goal limit defaults to three');
 
+-- Arrange an older timestamp without invoking the trigger being tested.
+alter table public.profiles disable trigger profiles_set_updated_at;
 update public.profiles set updated_at = now() - interval '1 day'
   where id = '11111111-1111-4111-8111-111111111111';
+alter table public.profiles enable trigger profiles_set_updated_at;
 
 set local role authenticated;
 select set_config('request.jwt.claims',
@@ -59,10 +62,18 @@ select throws_ok(
 select throws_ok(
   $$delete from public.profiles where id = '22222222-2222-4222-8222-222222222222'$$,
   '42501', null, 'An owner cannot delete another profile');
+select throws_ok(
+  $$insert into public.profiles (id, user_id)
+    values ('33333333-3333-4333-8333-333333333333', '11111111-1111-4111-8111-111111111111')$$,
+  '42501', null, 'Browser users cannot create profiles with forged ownership');
 
 select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
 select is((select count(*) from public.profiles), 0::bigint,
   'A request without a verified user ID cannot read profiles');
+
+set local role anon;
+select throws_ok($$select * from public.profiles$$, '42501', null,
+  'Public visitors have no access to profiles');
 
 select * from finish();
 rollback;

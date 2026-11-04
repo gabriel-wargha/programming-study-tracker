@@ -2,7 +2,7 @@
 
 A personal app for focused programming goals, weekly activity, and projects. Product scope and build order live in [plan.md](plan.md); coding and security rules live in [AGENTS.md](AGENTS.md).
 
-Phase 0 is in progress. The responsive starter page, Next.js configuration, shadcn/ui foundation, and component test setup are in place. Authentication and study data start in later phases.
+Phase 1 preparation is in progress. The starter still runs unchanged. Auth form components, a profiles migration and RLS tests, environment validation, and a local test-user helper are prepared; live authentication is not connected yet.
 
 ## Local development
 
@@ -38,6 +38,39 @@ npm install --save-dev supabase @playwright/test
 npx playwright install chromium
 ```
 
-Then configure Playwright and add its first browser smoke test under `tests/e2e/`. The `test:e2e` script is reserved for that setup and currently fails because Playwright is not installed. Verify the starter in a browser at desktop and mobile widths and confirm that `docker info` succeeds before Phase 1.
+Then configure Playwright and add its first browser smoke test under `tests/e2e/`. The guarded test-user helper is prepared there, but it has not been run against Auth yet. The `test:e2e` script currently fails because Playwright is not installed. Desktop/mobile browser checks and successful Docker access remain pending.
+
+## Local authentication setup
+
+After the packages are installed, initialize Supabase if `supabase/config.toml` does not already exist:
+
+```bash
+npm run supabase -- init
+```
+
+The `supabase` npm script loads `.env.local` before invoking the installed CLI, so OAuth secrets can stay in that ignored file. In the existing `[auth]` section of `supabase/config.toml`, set `site_url` to `http://localhost:3000` and `additional_redirect_urls` to `["http://localhost:3000/auth/callback"]`.
+
+Create the local GitHub OAuth app with homepage `http://localhost:3000` and callback `http://127.0.0.1:54321/auth/v1/callback`. Add its credentials to `.env.local` using the commented variable names in `.env.example`. Add or update this provider block without duplicating an existing block:
+
+```toml
+[auth.external.github]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET)"
+redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
+```
+
+This follows the [Supabase local configuration guide](https://supabase.com/docs/guides/local-development/managing-config). Keep email signup enabled with confirmations disabled in the local `[auth.email]` configuration for the test-user fixture. The fixture uses unique random credentials, calls real local Auth, and rejects production execution, Vercel, and non-loopback URLs. It is outside application code and supplies no login bypass route.
+
+Start the local stack, apply the new migration to the local database, run its tests, and generate types:
+
+```bash
+npm run supabase -- start
+npm run supabase -- db reset
+npm run supabase -- test db
+npm run db:types
+```
+
+Copy the local Supabase URL and **publishable key** into `.env.local`; use no legacy `anon` or `service_role` key. Database types must come from the running database; no placeholder type file has been created. After this setup, the remaining work is to connect the SDK clients, session proxy, OAuth routes, protected layout, and browser tests.
 
 The GitHub remote is [gabriel-wargha/programming-study-tracker](https://github.com/gabriel-wargha/programming-study-tracker). The owner initialized and pushed the first scaffold commit; the remaining changes still need a Conventional Commit and push. The agent's commit attempt was blocked from writing `.git/index.lock`. No deployment has been performed.

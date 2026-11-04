@@ -6,7 +6,7 @@ Programming Study Tracker is a personal web app for organizing programming study
 
 `plan.md` defines the scope, product rules, data model, screens, and build order. Read it before starting work.
 
-**Current status:** Phase 0 is in progress. The starter app and component test setup exist. Finish the remaining setup and verification tasks in `plan.md` before Phase 1.
+**Current status:** Phase 1 preparation is in progress at the owner's request. Auth components, a profiles migration, and isolation tests are prepared. Supabase and Playwright installation, local services, database type generation, and live auth integration remain pending. See `plan.md` for verified progress.
 
 ## Stack
 
