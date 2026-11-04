@@ -439,20 +439,24 @@ npx create-next-app@latest app-temp --typescript --tailwind --eslint --app --src
 ```
 
 - [ ] Confirm that the Phase 0 owner setup is complete.
-- [ ] Run `git init`.
-- [ ] Run the command above.
-- [ ] Move all generated files from `app-temp`, including hidden files, into the project root.
-- [ ] Remove `app-temp`.
-- [ ] Set the package name to `programming-study-tracker`.
+- [x] Run `git init`.
+- [x] Run the command above. Used the cached `create-next-app` 16.4.4 CLI with `--skip-install`; installed available packages separately because registry access is blocked.
+- [x] Move all generated files from `app-temp`, including hidden files, into the project root.
+- [x] Remove `app-temp`.
+- [x] Set the package name to `programming-study-tracker`.
 - [ ] Install Zod, Supabase packages, Supabase CLI, Vitest, Testing Library, and Playwright.
-- [ ] Set up shadcn/ui.
+- [x] Set up shadcn/ui. Configured manually with theme variables, aliases, `cn`, and a shared Button; verified by the component test and production build.
 - [ ] Add the `typecheck`, `test`, and `test:e2e` scripts.
-- [ ] Add `.env.example`, and make sure Git tracks it while ignoring real `.env` files.
-- [ ] Add the folders listed in `AGENTS.md`.
+- [x] Add `.env.example`, and make sure Git tracks it while ignoring real `.env` files.
+- [x] Add the folders listed in `AGENTS.md`.
 - [ ] If Claude Code will be used, add `CLAUDE.md` containing `@AGENTS.md`.
 - [ ] Commit the project and push it to GitHub.
 
 **Done when:** The starter app runs, and lint, type checks, tests, and the production build pass.
+
+**Verified November 4, 2026:** A clean `npm ci` from the lockfile succeeds using the local cache. `npm run lint`, `npm run typecheck`, `npm test` (one keyboard navigation smoke test), and `npm run build` pass. Node.js 22.15.0 is installed, and the owner initialized Git, added `https://github.com/gabriel-wargha/programming-study-tracker.git`, and pushed the first scaffold commit. `.env.example` is tracked; real `.env` files are ignored. The project folders exist; database types will be generated with the first schema in Phase 1.
+
+**Still pending:** Supabase packages, Supabase CLI, and Playwright cannot be installed because registry access is blocked and these packages are absent from the local cache. `typecheck` and `test` work; `test:e2e` is defined but fails until Playwright is installed and configured. Docker is installed, but the session cannot access its socket. The development server cannot bind a local port, and browser control permissions are unavailable, so running-app and desktop/mobile browser verification remain open. The remaining changes need a commit and push; the commit attempt was blocked from writing `.git/index.lock`. `CLAUDE.md` is conditional and has not been added because Claude Code use has not been requested. See `README.md` for the remaining installation commands.
 
 ### Phase 1: Login and foundation
 
@@ -590,6 +594,9 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-04 | Keep reminders and alerts inside the app | This avoids a scheduled job and an email service |
 | 2026-11-04 | Use one public database function for the portfolio | Private tables stay closed to public visitors |
 | 2026-11-04 | Use a server token for GitHub data | Public repository details do not require storing user OAuth tokens |
+| 2026-11-04 | Use Node.js 22.15.0 for the initial development setup | The selected Vitest and jsdom versions need newer Node.js than the framework's 20.9 minimum; this version is already installed |
+| 2026-11-04 | Use the supported Next.js Webpack production build and Tailwind PostCSS integration | The agent sandbox blocks Turbopack's worker port; the Webpack production build passes |
+| 2026-11-04 | Use system fonts for the initial starter | The app can build without downloading fonts in a network-restricted environment |
 
 ## 15. Ideas for later
 

@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Programming Study Tracker
 
-## Getting Started
+A personal app for focused programming goals, weekly activity, and projects. Product scope and build order live in [plan.md](plan.md); coding and security rules live in [AGENTS.md](AGENTS.md).
 
-First, run the development server:
+Phase 0 is in progress. The responsive starter page, Next.js configuration, shadcn/ui foundation, and component test setup are in place. Authentication and study data start in later phases.
+
+## Local development
+
+Use Node.js 22.15.0 (`nvm use`) and npm. The selected test tools require Node.js 22.13 or later on the 22.x line; `package.json` lists the supported Node versions.
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [localhost:3000](http://localhost:3000). The starter page does not need environment variables. In Phase 1, copy `.env.example` to `.env.local` and replace its placeholders with local Supabase values. Keep real environment files out of Git.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-## Learn More
+`npm test` runs once; `npm run test:watch` watches for changes. Component tests live beside the code they cover. The production build uses Next.js's supported Webpack option because Turbopack's worker port is blocked in the current agent sandbox. Tailwind uses the standard PostCSS integration. The starter uses system fonts so builds do not need to download fonts.
 
-To learn more about Next.js, take a look at the following resources:
+shadcn/ui is configured manually with `components.json`, CSS theme variables, `cn`, and a shared Button. Follow the [official shadcn/ui guide](https://ui.shadcn.com/docs/installation/manual) when adding components.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Remaining Phase 0 setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The current agent session cannot reach the npm registry, open a local server port, access Docker's socket, or control the browser. Supabase packages and Playwright are absent from the local package cache. From a terminal with network access, install the planned packages:
 
-## Deploy on Vercel
+```bash
+npm install @supabase/supabase-js @supabase/ssr
+npm install --save-dev supabase @playwright/test
+npx playwright install chromium
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Then configure Playwright and add its first browser smoke test under `tests/e2e/`. The `test:e2e` script is reserved for that setup and currently fails because Playwright is not installed. Verify the starter in a browser at desktop and mobile widths and confirm that `docker info` succeeds before Phase 1.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The GitHub remote is [gabriel-wargha/programming-study-tracker](https://github.com/gabriel-wargha/programming-study-tracker). The owner initialized and pushed the first scaffold commit; the remaining changes still need a Conventional Commit and push. The agent's commit attempt was blocked from writing `.git/index.lock`. No deployment has been performed.

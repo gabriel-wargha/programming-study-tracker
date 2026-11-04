@@ -6,7 +6,7 @@ Programming Study Tracker is a personal web app for organizing programming study
 
 `plan.md` defines the scope, product rules, data model, screens, and build order. Read it before starting work.
 
-**Current status:** Planning is complete, and no app code exists yet. Start with Phase 0 in `plan.md`.
+**Current status:** Phase 0 is in progress. The starter app and component test setup exist. Finish the remaining setup and verification tasks in `plan.md` before Phase 1.
 
 ## Stack
 

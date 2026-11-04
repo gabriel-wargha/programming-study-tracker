@@ -1,69 +1,117 @@
-import Image from "next/image";
+import { ArrowDown, BookOpen, Check, Code2, GitBranch, Target } from "lucide-react";
+import Link from "next/link";
 
-export default function Home() {
+import { Button } from "@/components/ui/button";
+
+const steps = [
+  {
+    title: "Choose a small goal",
+    description: "Pick a topic and decide what done looks like.",
+    icon: Target,
+  },
+  {
+    title: "Record the work",
+    description: "Keep a weekly record of what you did and the time you spent.",
+    icon: BookOpen,
+  },
+  {
+    title: "Keep what you build",
+    description: "Connect your projects to the learning that made them possible.",
+    icon: GitBranch,
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="mx-auto flex min-h-svh w-full max-w-6xl flex-col px-6 sm:px-10">
+      <header className="flex items-center justify-between gap-4 border-b py-6 sm:py-8">
+        <Link href="/" className="flex items-center gap-3 rounded-sm font-semibold">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Code2 aria-hidden="true" className="size-5" />
+          </span>
+          <span className="max-w-44 text-sm leading-snug sm:max-w-none">
+            Programming Study Tracker
+          </span>
+        </Link>
+        <span className="shrink-0 rounded-full border px-3 py-1.5 text-xs text-muted-foreground">
+          Workspace preview
+        </span>
+      </header>
+
+      <main id="main-content" tabIndex={-1} className="flex-1 py-16 sm:py-24">
+        <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_1fr] lg:gap-20">
+          <div>
+            <p className="mb-6 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+              A little focus goes a long way
+            </p>
+            <h1 className="text-5xl leading-[1.08] font-semibold tracking-tight sm:text-7xl">
+              Small steps.
+              <br />
+              <span className="text-primary">Real progress.</span>
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
+              A home for your programming study. Set clear goals, record your
+              weekly practice, and keep the projects you build along the way.
+            </p>
+            <Button asChild size="lg" className="mt-8">
+              <a href="#how-it-works">
+                See the approach
+                <ArrowDown aria-hidden="true" />
+              </a>
+            </Button>
+          </div>
+
+          <section
+            aria-labelledby="workspace-heading"
+            className="relative rounded-2xl border bg-card p-7 shadow-[0_8px_40px_-20px_#28564130] sm:p-9"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <div className="mb-8 flex items-center justify-between">
+              <span className="font-mono text-xs text-muted-foreground">ONE STEP AT A TIME</span>
+              <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-primary">
+                <Check aria-hidden="true" className="size-4" />
+              </span>
+            </div>
+            <div aria-hidden="true" className="mb-8 flex h-28 items-end gap-3 border-b px-4">
+              {[28, 42, 38, 62, 76, 96].map((height, index) => (
+                <div
+                  key={height}
+                  className={`flex-1 rounded-t-md ${index === 5 ? "bg-primary" : "bg-secondary"}`}
+                  style={{ height: `${height}%` }}
+                />
+              ))}
+            </div>
+            <h2 id="workspace-heading" className="text-xl font-semibold tracking-tight">
+              Make space for your next chapter.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Your topics, goals, and weekly progress will have a home here.
+              This is a first look; your study workspace is coming next.
+            </p>
+          </section>
         </div>
+
+        <section id="how-it-works" aria-labelledby="approach-heading" className="mt-20 scroll-mt-8 border-t pt-10 sm:mt-24">
+          <h2 id="approach-heading" className="mb-8 text-sm font-semibold text-muted-foreground">
+            A simple rhythm for learning
+          </h2>
+          <ol className="grid gap-8 sm:grid-cols-3 sm:gap-10">
+            {steps.map(({ title, description, icon: Icon }, index) => (
+              <li key={title}>
+                <div className="mb-4 flex items-center gap-3">
+                  <Icon aria-hidden="true" className="size-5 text-primary" />
+                  <span className="font-mono text-xs text-muted-foreground">0{index + 1}</span>
+                </div>
+                <h3 className="font-semibold">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
       </main>
+
+      <footer className="border-t py-6 text-xs text-muted-foreground">
+        Your pace. Your progress.
+      </footer>
     </div>
   );
 }
