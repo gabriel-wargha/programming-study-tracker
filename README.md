@@ -2,18 +2,34 @@
 
 A personal app for focused programming goals, weekly activity, and projects. Product scope and build order live in [plan.md](plan.md); coding and security rules live in [AGENTS.md](AGENTS.md).
 
-Phase 2 preparation is in progress. The starter still runs unchanged. Auth, topic, goal, and settings components, migrations, and tests are prepared; authentication and saved study data are not connected yet.
+## Status
+
+The project now uses Neon instead of Supabase. Phases 1 to 7 are built and run entirely on your machine:
+
+- **Database:** PGlite, which is Postgres embedded in Node. It needs no Docker or account and stores data in `.data/`.
+- **User:** a fixed local owner that works only under `npm run dev`.
+
+Phase 8 connects the same schema to Neon, adds GitHub sign-in through Neon Auth, and deploys to Vercel. The local foundation (Phase 1) is done: `npm run dev` opens an empty dashboard as the local owner. Topics and goals (Phase 2) are next.
 
 ## Local development
 
-Use Node.js 22.15.0 (`nvm use`) and npm. The selected test tools require Node.js 22.13 or later on the 22.x line; `package.json` lists the supported Node versions.
+Use Node.js 22.15.0 (`nvm use`) and npm.
 
 ```bash
 npm ci
+cp .env.example .env.local   # keeps LOCAL_OWNER_MODE=1
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). The starter page does not need environment variables. In Phase 1, copy `.env.example` to `.env.local` and replace its placeholders with local Supabase values. Keep real environment files out of Git.
+Open [localhost:3000](http://localhost:3000). The dev server creates the local database in `.data/pglite` and applies migrations on first use.
+
+```bash
+npm run db:generate   # create a migration after editing src/db/schema.ts
+npm run db:migrate    # apply migrations (stop the dev server first)
+npm run db:reset      # delete and rebuild the local database (stop the dev server first)
+```
+
+PGlite allows only one process at a time, so stop `npm run dev` before running the `db:` scripts.
 
 ## Checks
 
@@ -22,63 +38,20 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run test:e2e   # first time: npx playwright install chromium
 ```
 
-`npm test` runs once; `npm run test:watch` watches for changes. Component tests live beside the code they cover. The production build uses Next.js's supported Webpack option because Turbopack's worker port is blocked in the current agent sandbox. Tailwind uses the standard PostCSS integration. The starter uses system fonts so builds do not need to download fonts.
+`npm test` runs once and includes database tests on an in-memory Postgres; `npm run test:watch` watches for changes. Tests live beside the code they cover. The production build uses Next.js's Webpack option, and the app uses system fonts, so builds don't need to download anything.
 
 shadcn/ui is configured manually with `components.json`, CSS theme variables, `cn`, and a shared Button. Follow the [official shadcn/ui guide](https://ui.shadcn.com/docs/installation/manual) when adding components.
 
-## Remaining Phase 0 setup
+## Neon setup (Phase 8 only)
 
-The current agent session cannot reach the npm registry, open a local server port, access Docker's socket, or control the browser. Supabase packages and Playwright are absent from the local package cache. From a terminal with network access, install the planned packages:
+You don't need any of this until the last phase. The full list is in section 10 of [plan.md](plan.md). In short:
 
-```bash
-npm install @supabase/supabase-js @supabase/ssr
-npm install --save-dev supabase @playwright/test
-npx playwright install chromium
-```
+1. Create a Neon project, then run `neon login` and `neon link`.
+2. Turn on Neon Auth, and add a GitHub OAuth app with callback `{NEON_AUTH_BASE_URL}/callback/github`.
+3. Fill in the Phase 8 variables from `.env.example`.
+4. Import the repository into Vercel and add the same variables there.
 
-Then configure Playwright and add its first browser smoke test under `tests/e2e/`. The guarded test-user helper is prepared there, but it has not been run against Auth yet. The `test:e2e` script currently fails because Playwright is not installed. Desktop/mobile browser checks and successful Docker access remain pending.
-
-## Local authentication setup
-
-After the packages are installed, initialize Supabase if `supabase/config.toml` does not already exist:
-
-```bash
-npm run supabase -- init
-```
-
-The `supabase` npm script loads `.env.local` before invoking the installed CLI, so OAuth secrets can stay in that ignored file. In the existing `[auth]` section of `supabase/config.toml`, set `site_url` to `http://localhost:3000` and `additional_redirect_urls` to `["http://localhost:3000/auth/callback"]`.
-
-Create the local GitHub OAuth app with homepage `http://localhost:3000` and callback `http://127.0.0.1:54321/auth/v1/callback`. Add its credentials to `.env.local` using the commented variable names in `.env.example`. Add or update this provider block without duplicating an existing block:
-
-```toml
-[auth.external.github]
-enabled = true
-client_id = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID)"
-secret = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET)"
-redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
-```
-
-This follows the [Supabase local configuration guide](https://supabase.com/docs/guides/local-development/managing-config). Keep email signup enabled with confirmations disabled in the local `[auth.email]` configuration for the test-user fixture. The fixture uses unique random credentials, calls real local Auth, and rejects production execution, Vercel, and non-loopback URLs. It is outside application code and supplies no login bypass route.
-
-Start the local stack, apply the new migration to the local database, run its tests, and generate types:
-
-```bash
-npm run supabase -- start
-npm run supabase -- db reset
-npm run supabase -- test db
-npm run db:types
-```
-
-Copy the local Supabase URL and **publishable key** into `.env.local`; use no legacy `anon` or `service_role` key. Database types must come from the running database; no placeholder type file has been created. After this setup, the remaining work is to connect the SDK clients, session proxy, OAuth routes, protected layout, and browser tests.
-
-## Topics and goals preparation
-
-The Phase 2 migration adds topics and goals with owner-only access and a composite foreign key that keeps each goal under a topic owned by the same user. Database triggers handle status timestamps, topic archiving, and active-goal limits. Active changes serialize through a profile row write; this also updates the profile's `updated_at` timestamp. Database isolation and concurrency still need verification against local Supabase.
-
-Forms for topic creation/editing/archiving, goal creation/editing/status changes, and active-limit settings are prepared under `src/features/`. They provide labels, field errors, pending states, completion confirmation, and active-goal links when a change is blocked. Lists and details include empty states, text status labels, and calendar dates that stay stable across timezones. Their action props and presentation models are ready for integration after authentication and database types are available; there are no protected topic/goal routes or persistence actions yet.
-
-The current unit/component suite has 56 passing tests. SQL tests are in `supabase/tests/database/`; neither migration has been applied, and database and desktop/mobile browser checks remain pending. See [plan.md](plan.md) for the exact verified scope.
-
-The GitHub remote is [gabriel-wargha/programming-study-tracker](https://github.com/gabriel-wargha/programming-study-tracker). The owner initialized and pushed the first scaffold commit; the remaining changes still need a Conventional Commit and push. The agent's commit attempt was blocked from writing `.git/index.lock`. No deployment has been performed.
+The GitHub remote is [gabriel-wargha/programming-study-tracker](https://github.com/gabriel-wargha/programming-study-tracker). Nothing has been deployed.

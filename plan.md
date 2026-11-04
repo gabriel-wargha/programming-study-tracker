@@ -12,7 +12,7 @@ Programming Study Tracker is a personal web app for organizing programming study
 - Open a goal, select what they did that week, and record the time spent.
 - Add a project with a Git link.
 - See active goals and this week's activity on a dashboard.
-- Sign in with GitHub and use the app from a hosted URL.
+- Sign in with GitHub and use the app from a hosted URL. (This arrives last, in Phase 8; Phases 1 to 7 run locally.)
 
 ## 2. Scope
 
@@ -45,12 +45,17 @@ Programming Study Tracker is a personal web app for organizing programming study
 |---|---|
 | Frontend | Next.js 16 App Router, TypeScript, Tailwind CSS, and shadcn/ui |
 | Backend | Next.js Server Components, Server Actions, and Route Handlers |
-| Database | PostgreSQL on Supabase |
-| Authentication | Supabase Auth with GitHub login |
+| Database | Lakebase Postgres on Neon in production; PGlite (embedded Postgres) for local development and tests |
+| Data access | Drizzle ORM and SQL migrations managed by drizzle-kit |
+| Authentication | Neon Auth (managed Better Auth) with GitHub login, added in Phase 8 |
 | External data | GitHub REST API |
 | Hosting | Vercel |
 
-The app has one owner, but the database uses `user_id` and RLS on every table. This keeps data isolated if sign-ups are ever opened by mistake and leaves room for multiple users later.
+The app has one owner, but every owned table has a `user_id` column, and every query and change is scoped to the signed-in user in server code. This keeps data isolated if sign-ups are ever opened by mistake and leaves room for multiple users later.
+
+**Local first, Neon last.** Phases 1 to 7 run entirely on the owner's machine. The app uses an embedded PGlite database stored in `.data/` and a fixed local owner account that works only under `next dev`. Phase 8 connects the same schema and migrations to Neon, replaces the local owner with Neon Auth, and deploys to Vercel. The database driver is chosen in one module (`src/db/client.ts`), so app code does not change when Neon is connected.
+
+**Why server-side scoping instead of RLS.** The browser never talks to the database. All reads and writes go through Server Components and Server Actions that use a server-only connection. Ownership is enforced in three layers: the verified user ID from the session, query helpers that always filter by that ID, and database constraints (composite foreign keys and triggers) that reject cross-owner references and rule violations.
 
 ## 4. Main user flow
 
@@ -176,10 +181,10 @@ The review defaults to the current week and can show earlier weeks.
 
 | Route | Purpose | Phase |
 |---|---|---|
-| `/` | Redirect to the dashboard or login page | 1 |
-| `/login` | Sign in with GitHub | 1 |
-| `/auth/callback` | Finish the sign-in process | 1 |
-| `/dashboard` | Show active goals, weekly summary, alerts, reminders, and calendar | 4, then 5 and 7 |
+| `/` | Redirect to the dashboard, or to the login page once login exists | 1, then 8 |
+| `/login` | Sign in with GitHub | 8 |
+| `/api/auth/[...path]` | Neon Auth handler, including the GitHub OAuth callback | 8 |
+| `/dashboard` | Show active goals, weekly summary, alerts, reminders, and calendar | 1 (empty), 4, then 5 and 7 |
 | `/topics` | List and create topics | 2 |
 | `/topics/[id]` | Show a topic's goals, confidence history, and resources | 2, then 5 and 6 |
 | `/goals` | List goals by status | 2 |
@@ -223,13 +228,12 @@ Create tables in the phase that needs them. All tables include `created_at`. Tab
 
 **`profiles` (Phase 1)**
 
-- `id`: `uuid`, primary key, references `auth.users`
-- `user_id`: `uuid`, unique and required, references `auth.users`; a check requires `user_id = id` so owner-only RLS follows `AGENTS.md`
+- `user_id`: `text`, primary key. In local development it is the fixed local owner ID; from Phase 8 it is the Neon Auth user ID (`neon_auth.user.id`, read from the verified session). It is `text` because Neon Auth does not document the ID type, and there is no foreign key into the Neon-managed `neon_auth` schema.
 - `display_name`: `text`
 - `github_username`: `text`
 - `active_goal_limit`: `smallint`, default 3, from 1 to 10
 
-Add a trigger that creates a profile for each new user. Add these columns in Phase 7:
+The app creates the profile on first use with an idempotent insert (`on conflict do nothing`) after it verifies the user. Every other owned table references `profiles.user_id`. Add these columns in Phase 7:
 
 - `portfolio_enabled`: `boolean`, default false
 - `portfolio_slug`: `text`, unique
@@ -350,20 +354,19 @@ Create `goal_activity_summary` in Phase 5 with `security_invoker = true`. It ret
 
 ## 8. Security and privacy
 
-- Enable RLS on every table with owner-only policies.
-- Do not add public RLS policies to private tables.
+- The database is reached only from server code (`server-only` modules). The browser never receives a database URL or credentials.
+- Get the user ID only from the verified session through `requireUser()`. Never accept a user ID from the browser.
+- Every owned-table query filters by that user ID, including the rows it updates or deletes. Tests prove that one user cannot read or change another user's rows through the query and action layer.
 - Use composite foreign keys so a row can reference only rows with the same `user_id`.
-- Check the signed-in user in every protected page, query, and Server Action.
-- Turn off new sign-ups after the owner's account is created.
+- Enforce product rules that must not be bypassed (active goal limit, status transitions, archive rules) with database constraints and triggers as well as in server code.
+- Check the signed-in user in every protected page, query, and Server Action. `proxy.ts` redirects are not enough on their own.
+- **Local owner (Phases 1 to 7):** `requireUser()` returns a fixed local owner only when `NODE_ENV` is `development`, `LOCAL_OWNER_MODE=1`, and `VERCEL` is unset. In every other case it fails closed. It is removed from production paths in Phase 8.
+- **Sign-up restriction (Phase 8):** Neon Auth lets anyone sign up by default and has no documented setting to turn sign-ups off. The app allows only the user IDs listed in the server-only `ALLOWED_USER_IDS` variable and treats everyone else as signed out.
 - Render external links with `rel="noopener noreferrer"`.
 
-The public portfolio uses one database function:
+The public portfolio uses one dedicated server query, `getPublicPortfolio(slug)`, in `src/features/portfolio/queries.ts`. It is the only code path that reads data without a signed-in user. It selects an explicit list of columns and returns data only when `portfolio_enabled` is true.
 
-`get_public_portfolio(slug text)`
-
-This `SECURITY DEFINER` function has a fixed `search_path`, and only this function is available to public visitors. It returns data only when `portfolio_enabled` is true.
-
-| Function returns | Function never returns |
+| Query returns | Query never returns |
 |---|---|
 | Display name, headline, and GitHub username | User ID |
 | Public completed goals and their topic names | Planned, active, or private goals |
@@ -400,39 +403,42 @@ An agent cannot complete these account steps without the owner.
 
 ### Required for Phase 0
 
-1. Install Node.js 20.9 or later.
-2. Install Docker or a compatible runtime for local Supabase.
-3. Create an empty GitHub repository for the project.
+1. Install Node.js 22.13 or later (see `.nvmrc`).
+2. Create an empty GitHub repository for the project.
+
+No Docker or cloud account is needed for Phases 0 to 7.
 
 ### Required for Phase 1
 
-1. Create a GitHub OAuth app for local development.
-2. Use `http://127.0.0.1:54321/auth/v1/callback` as its callback URL.
-3. Add its client ID and secret to the local Supabase setup without committing them.
-
-### Required for Phase 4
-
-1. Create a hosted Supabase project.
-2. Create a second GitHub OAuth app using the callback URL shown by Supabase.
-3. Turn on GitHub login in Supabase and add the OAuth app's credentials.
-4. Set the production site URL and add `/auth/callback` to the allowed redirect URLs.
-5. Import the GitHub repository into Vercel.
-6. Add the production environment variables.
-7. Sign in once, then turn off new sign-ups in Supabase Auth.
+1. Copy `.env.example` to `.env.local` and set `LOCAL_OWNER_MODE=1`.
 
 ### Required for Phase 6
 
 1. Create a read-only GitHub token for public repositories.
-2. Add it to `.env.local` and Vercel as `GITHUB_TOKEN`.
+2. Add it to `.env.local` as `GITHUB_TOKEN`, and to Vercel in Phase 8.
+
+### Required for Phase 8
+
+1. Create a Neon account and a project in an AWS region, then run `neon login` and `neon link` in the project folder.
+2. Turn on Neon Auth for the project (`auth: true` in `neon.ts`, then `neon deploy`).
+3. Create a GitHub OAuth app whose callback URL is `{NEON_AUTH_BASE_URL}/callback/github`, and add it with `neon neon-auth oauth-provider add --provider-id github ...` or in the Neon Console. Each Neon branch has its own Auth URL, so register a callback for each branch you sign in on.
+4. Generate `NEON_AUTH_COOKIE_SECRET` with `openssl rand -base64 32`.
+5. Import the GitHub repository into Vercel, add the production domain to Neon Auth trusted domains, and turn off **Allow Localhost** for the production branch.
+6. Add the production environment variables to Vercel.
+7. Sign in once, then put your user ID in `ALLOWED_USER_IDS`.
 
 ### Environment variables
 
 | Name | Public | Needed from |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Phase 1 |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Phase 1 |
+| `LOCAL_OWNER_MODE` | No (local only, never set on Vercel) | Phase 1 |
 | `NEXT_PUBLIC_SITE_URL` | Yes | Phase 1 |
 | `GITHUB_TOKEN` | No | Phase 6 |
+| `DATABASE_URL` (pooled) | No | Phase 8 |
+| `DATABASE_URL_UNPOOLED` (direct, migrations only) | No | Phase 8 |
+| `NEON_AUTH_BASE_URL` | No | Phase 8 |
+| `NEON_AUTH_COOKIE_SECRET` | No | Phase 8 |
+| `ALLOWED_USER_IDS` | No | Phase 8 |
 
 ## 11. Build phases
 
@@ -444,68 +450,62 @@ An agent cannot complete these account steps without the owner.
 npx create-next-app@latest app-temp --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --disable-git --no-agents-md
 ```
 
-- [ ] Confirm that the Phase 0 owner setup is complete.
+- [x] Confirm that the Phase 0 owner setup is complete. Node.js 22.15.0 is installed and the GitHub repository exists.
 - [x] Run `git init`.
-- [x] Run the command above. Used the cached `create-next-app` 16.4.4 CLI with `--skip-install`; installed available packages separately because registry access is blocked.
+- [x] Run the command above. Used the cached `create-next-app` 16.4.4 CLI with `--skip-install`.
 - [x] Move all generated files from `app-temp`, including hidden files, into the project root.
 - [x] Remove `app-temp`.
 - [x] Set the package name to `programming-study-tracker`.
-- [ ] Install Zod, Supabase packages, Supabase CLI, Vitest, Testing Library, and Playwright.
-- [x] Set up shadcn/ui. Configured manually with theme variables, aliases, `cn`, and a shared Button; verified by the component test and production build.
-- [ ] Add the `typecheck`, `test`, and `test:e2e` scripts.
+- [x] Install Drizzle ORM, drizzle-kit, PGlite, and Playwright. Installed drizzle-orm 0.45.4, drizzle-kit 0.31.11, @electric-sql/pglite 0.5.15, @playwright/test 1.64.1, and server-only. The Neon packages are installed in Phase 8.
+- [x] Set up shadcn/ui. Configured manually with theme variables, aliases, `cn`, and a shared Button.
+- [x] Add the `typecheck`, `test`, and `test:e2e` scripts.
 - [x] Add `.env.example`, and make sure Git tracks it while ignoring real `.env` files.
 - [x] Add the folders listed in `AGENTS.md`.
-- [ ] If Claude Code will be used, add `CLAUDE.md` containing `@AGENTS.md`.
-- [ ] Commit the project and push it to GitHub.
+- [x] Add `CLAUDE.md` containing `@AGENTS.md`.
+- [x] Commit the project and push it to GitHub.
 
 **Done when:** The starter app runs, and lint, type checks, tests, and the production build pass.
 
-**Verified November 4, 2026:** A clean `npm ci` from the lockfile succeeds using the local cache. `npm run lint`, `npm run typecheck`, `npm test` (one keyboard navigation smoke test), and `npm run build` pass. Node.js 22.15.0 is installed, and the owner initialized Git, added `https://github.com/gabriel-wargha/programming-study-tracker.git`, and pushed the first scaffold commit. `.env.example` is tracked; real `.env` files are ignored. The project folders exist; database types will be generated with the first schema in Phase 1.
+**Verified November 4, 2026:** `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` pass.
 
-**Still pending:** Supabase packages, Supabase CLI, and Playwright cannot be installed because registry access is blocked and these packages are absent from the local cache. `typecheck` and `test` work; `test:e2e` is defined but fails until Playwright is installed and configured. Docker is installed, but the session cannot access its socket. The development server cannot bind a local port, and browser control permissions are unavailable, so running-app and desktop/mobile browser verification remain open. The remaining changes need a commit and push; the commit attempt was blocked from writing `.git/index.lock`. `CLAUDE.md` is conditional and has not been added because Claude Code use has not been requested. See `README.md` for the remaining installation commands.
+### Phase 1: Local foundation
 
-### Phase 1: Login and foundation
+No cloud account or Docker is needed.
 
-- [ ] Run `npx supabase init` and `npx supabase start`.
-- [ ] Set up GitHub login for local Supabase.
-- [ ] Add the browser, server, and proxy Supabase clients using the current Supabase guide.
-- [ ] Add `src/proxy.ts` to refresh sessions and redirect signed-out users.
-- [ ] Build `/login`, `/auth/callback`, and sign-out.
-- [ ] Create `profiles`, its RLS policies, and the new-user trigger.
-- [ ] Generate database types.
-- [ ] Add the main layout with links to the app's main sections.
-- [ ] Add RLS tests.
-- [ ] Add a local-only test user for Playwright. It must never work in production.
+- [x] Add the Drizzle schema in `src/db/schema.ts` and the server-only database client in `src/db/client.ts` (PGlite locally; Neon is added in Phase 8).
+- [x] Generate migrations with drizzle-kit. Add the shared `updated_at` trigger in a custom SQL migration.
+- [x] Add a migration script (`npm run db:migrate`) and a reset script for the local database (`npm run db:reset`). The dev server also applies pending migrations when it first opens the database.
+- [x] Create `profiles`.
+- [x] Add `requireUser()` in `src/lib/auth/` with the guarded local owner, and ensure the profile exists on first use.
+- [x] Add database test helpers that run migrations on a fresh in-memory PGlite database.
+- [x] Add the main layout with links to the app's main sections, and an empty `/dashboard`. The navigation lists only built sections; each phase adds its own.
+- [x] Make `/` redirect to `/dashboard`.
+- [x] Configure Playwright with a smoke test against `next dev` in local owner mode.
 
-**Done when:** The owner can sign in with GitHub, reach an empty dashboard, and sign out. Signed-out visitors are redirected to `/login`.
+**Done when:** `npm run dev` opens an empty dashboard as the local owner, the local owner fails closed in a production build, and the database tests pass.
 
-**Prepared November 4, 2026:** Login and sign-out form components with pending and error states; public Supabase configuration validation; a profiles migration with owner-only read/update policies, restricted column grants, a new-user trigger, and a shared update timestamp trigger; 16 pgTAP assertions; a guarded local test-user fixture; and `npm run db:types` for generating types without erasing an existing type file on failure. The auth components are not yet mounted as routes. No Phase 1 task is marked complete until its integration checks pass.
+**Verified November 4, 2026:** Lint, type checking, 46 unit/component/database tests, and the production build pass. `npm run db:reset` and `npm run db:migrate` work, and re-running migrations is a no-op. Database tests run on in-memory PGlite and cover the profile defaults, the limit check, empty IDs, and the `updated_at` trigger. Playwright passes 8 tests: the dashboard, navigation state, skip link, and login redirect at desktop and mobile (Pixel 7) widths with no horizontal scroll, plus a production build with `LOCAL_OWNER_MODE=1` set that still redirects to `/login`. `requireUser()` calls `connection()`, so user checks never run during prerendering. Until Phase 8, `/login` shows that sign-in is unavailable.
 
-**Validation:** Lint, type checking, all 24 unit/component tests, and the production build pass. Attempts to run `supabase db reset`, `supabase test db`, database type generation, and Playwright could not proceed because their tools are not installed. The local test-user fixture is unit-tested with mocked Auth responses; a real test user has not been created.
-
-**Blocked prerequisites:** The Supabase SDKs and CLI and Playwright are not installed. The attempted SDK installation failed because npm registry DNS is unavailable; the database reset could not run because the CLI is not installed or cached. The session also cannot access Docker's socket. Browser/server/proxy clients, OAuth routes, protected layout, and generated database types are still pending. The owner has been asked to install the packages, initialize/start local Supabase, and create the local GitHub OAuth app. No schema has been applied or database types generated.
+**Superseded preparation (November 4, 2026):** Codex prepared Supabase migrations, pgTAP tests, Supabase config validation, a Supabase test-user fixture, and Supabase CLI scripts. None of them were applied. They were removed from the working tree in this phase and remain in Git history at commit `edfa92c`. The login panel and sign-out form components are kept for Phase 8.
 
 ### Phase 2: Topics and goals
 
-- [ ] Create `topics`, `goals`, their enums, RLS policies, and indexes.
+- [ ] Create `topics`, `goals`, the `goal_status` enum, and their indexes, with the composite topic ownership foreign key.
+- [ ] Port the goal and topic guard triggers (status transitions, timestamps, archive rules, and the active goal limit with profile-row locking) to a custom SQL migration.
 - [ ] Build topic creation, editing, and archiving.
 - [ ] Build goal creation and editing with a required definition of done.
 - [ ] Build the goal status changes from section 5.
-- [ ] Add the active goal limit to `/settings` and enforce it with a database trigger.
+- [ ] Add the active goal limit to `/settings`, enforced by the database trigger.
 - [ ] Build the topic list, topic page, goal list, and goal page.
-- [ ] Add unit, RLS, and component tests.
+- [ ] Add unit, ownership, database rule, and component tests.
 
-**Done when:** The owner can manage topics and goals, and the active goal limit cannot be bypassed from the browser.
+**Done when:** The owner can manage topics and goals, and the active goal limit cannot be bypassed through any Server Action or direct database write.
 
-**Prepared November 4, 2026, at the owner's request:** A new topics/goals migration defines the enum, owner-only RLS, column permissions, composite topic ownership foreign key, unique topic names, lifecycle timestamps, archive guards, and the active-goal limit trigger. Active goal changes write-lock the owner's profile to serialize slot allocation and limit updates. A PostgreSQL test file covers isolation, forged ownership, direct API writes at the limit, required finish lines, status changes, and timestamps.
-
-The topic create/edit/archive forms, goal create/edit/status forms, active-limit settings form, topic/goal lists and detail components, input schemas, status rules, and calendar-date formatting are prepared. These components use explicit action props and presentation models; they do not simulate persistence. They are not mounted as app routes yet. Protected pages, server queries, Server Actions, generated database types, and live browser flows depend on the unfinished authentication/database setup in Phase 1. No Phase 2 checklist task is marked complete before that integration is verified.
-
-**Verification:** Lint, type checking, all 56 unit/component tests, and the production build pass. Tests include validation, confirmation, pending/error behavior, active-limit handling, empty states, and timezone-independent target dates. Supabase database reset, database tests, and type generation remain blocked because the CLI is not installed or cached; Playwright is also not installed. An attempt to start a separate temporary PostgreSQL test instance failed because shared-memory creation is blocked by the sandbox. Neither migration has been applied in this session; RLS, concurrency, and desktop/mobile browser verification remain pending.
+**Prepared November 4, 2026:** The topic create/edit/archive forms, goal create/edit/status forms, active-limit settings form, topic and goal lists and detail components, input schemas, status rules, and calendar-date formatting exist with 56 passing tests. They take action props and presentation models, so they work with any data layer. The rules in the superseded Supabase migration (`supabase/migrations/20261104173000_create_topics_and_goals.sql`, in Git history at commit `edfa92c`) are the reference for the trigger port.
 
 ### Phase 3: Weekly logs and projects
 
-- [ ] Create `projects`, `activities`, the `activity_type` enum, RLS policies, and indexes.
+- [ ] Create `projects`, `activities`, the `activity_type` enum, and indexes.
 - [ ] Add date helpers for Monday-to-Sunday weeks, with tests.
 - [ ] Build `/goals/[id]/log`.
 - [ ] Support several activity types in one save.
@@ -514,11 +514,11 @@ The topic create/edit/archive forms, goal create/edit/status forms, active-limit
 - [ ] Support editing and deleting activities.
 - [ ] Build the project list and project page.
 - [ ] Add `https`-only URL validation.
-- [ ] Add unit, RLS, and component tests.
+- [ ] Add unit, ownership, and component tests.
 
 **Done when:** The owner can open an active goal, select what they did, add time, attach a project, and see it in that week's history.
 
-### Phase 4: Dashboard and first deployment
+### Phase 4: Dashboard
 
 - [ ] Build `/dashboard` with active goals, their latest activity, and **Log this week** links.
 - [ ] Add this week's total time and activity count.
@@ -526,11 +526,8 @@ The topic create/edit/archive forms, goal create/edit/status forms, active-limit
 - [ ] Add loading, empty, and error states across the app.
 - [ ] Test the main screens at desktop and mobile widths.
 - [ ] Add a Playwright test for the main user flow.
-- [ ] Complete the Phase 4 owner setup.
-- [ ] Get approval, apply migrations to production, and deploy to Vercel.
-- [ ] Test sign-in and the main user flow in production.
 
-**Done when:** The first version is live and meets the criteria in section 1.
+**Done when:** The full main user flow from section 4 works locally and is covered by a Playwright test.
 
 ### Phase 5: Progress and consistency
 
@@ -556,7 +553,7 @@ The topic create/edit/archive forms, goal create/edit/status forms, active-limit
 - [ ] Include blockers in the weekly review.
 - [ ] Create `topic_prerequisites`.
 - [ ] Build `/roadmap` with prerequisite warnings and loop prevention.
-- [ ] Add unit, RLS, and component tests.
+- [ ] Add unit, ownership, and component tests.
 
 **Done when:** Public GitHub repositories show their details, and the owner can manage resources, blockers, and topic prerequisites.
 
@@ -567,34 +564,45 @@ The topic create/edit/archive forms, goal create/edit/status forms, active-limit
 - [ ] Show due reminders on the dashboard and let the owner finish them.
 - [ ] Remove unfinished reminders when a goal is reopened.
 - [ ] Add portfolio settings and `is_public` controls.
-- [ ] Create `get_public_portfolio(slug)`.
+- [ ] Add `getPublicPortfolio(slug)` with an explicit column list.
 - [ ] Build `/u/[slug]`.
 - [ ] Add a Playwright test proving that private data does not appear on the portfolio.
-- [ ] Add a `README.md` with setup and deployment steps.
 - [ ] Complete a final accessibility check.
 
 **Done when:** Reminders work, and a visitor can see only the content the owner chose to make public.
+
+### Phase 8: Neon, login, and deployment
+
+- [ ] Complete the Phase 8 owner setup.
+- [ ] Install `@neon/auth`, `@neondatabase/serverless`, and `@neon/config`, and add `neon.ts` with `auth: true`.
+- [ ] Add the Neon driver to `src/db/client.ts` when `DATABASE_URL` is set. Use a driver that supports transactions.
+- [ ] Apply all migrations to a Neon development branch with `DATABASE_URL_UNPOOLED`, then run the database tests against it.
+- [ ] Add the Neon Auth server instance, the `/api/auth/[...path]` handler, and the browser auth client.
+- [ ] Add `src/proxy.ts` with `auth.middleware()` to redirect signed-out visitors, with `/login` and `/u/[slug]` public.
+- [ ] Build `/login` with GitHub sign-in, and sign-out.
+- [ ] Switch `requireUser()` to Neon Auth sessions with the `ALLOWED_USER_IDS` check. Keep the local owner limited to `next dev` without `DATABASE_URL`.
+- [ ] Get approval, apply migrations to the production branch, and deploy to Vercel.
+- [ ] Test sign-in, the sign-up restriction, and the main user flow in production.
+- [ ] Update `README.md` with the final setup and deployment steps.
+
+**Done when:** The first version is live and meets the criteria in section 1.
 
 ## 12. Testing
 
 - **Unit tests:** Week dates, status rules, active limit, stalled goals, reminder dates, and GitHub URL parsing.
 - **Component tests:** Goal forms, the log form, and empty and error states.
-- **Database tests:** RLS on every table, composite foreign keys, and the portfolio function.
-- **End-to-end tests:** Sign in, create a topic and goal, log an activity, add a project, and see it on the dashboard.
+- **Database tests:** Run with Vitest against a fresh in-memory PGlite database that has all migrations applied. They cover constraints, triggers, composite foreign keys, and ownership: one user cannot read or change another user's rows through the query and action layer. In Phase 8, the same tests also run against a Neon development branch.
+- **End-to-end tests:** Create a topic and goal, log an activity, add a project, and see it on the dashboard. Phase 8 adds sign-in and sign-up restriction checks.
 
-End-to-end tests should not depend on GitHub's login page, so they must use a local-only test user.
+End-to-end tests should not depend on GitHub's login page. Locally, they run against `next dev` in local owner mode.
 
 ## 13. Free plan limits
 
-These limits were checked in November 2026. Check them again before launch because they can change.
+Limits can change. Check them again before launch in Phase 8.
 
-**Supabase Free**
+**Neon Free**
 
-- 500 MB of database storage
-- Up to 2 active projects
-- Projects pause after one week of inactivity
-
-If the app is unused for a week, the project may pause. Restore it from the Supabase dashboard.
+Neon compute scales to zero when the app is idle and wakes on the next request, so the first request after a quiet period is slower. Storage is still counted while compute is idle. Check the current Neon Free plan limits for storage, compute hours, and Neon Auth users before Phase 8.
 
 **Vercel Hobby**
 
@@ -606,21 +614,30 @@ Move to a paid plan before charging for the app or using it commercially.
 
 | Date | Decision | Reason |
 |---|---|---|
-| 2026-11-04 | Use Next.js, Supabase, and Vercel | The owner chose this stack after comparing the alternatives |
+| 2026-11-04 | Use Next.js, Supabase, and Vercel | The owner chose this stack after comparing the alternatives (replaced by the Neon decisions below) |
 | 2026-11-04 | Remove weekly reflection and AI quiz | The owner does not want these features |
 | 2026-11-04 | Store dated activities instead of weekly records | One table supports history, totals, reviews, alerts, and the calendar |
 | 2026-11-04 | Keep reminders and alerts inside the app | This avoids a scheduled job and an email service |
-| 2026-11-04 | Use one public database function for the portfolio | Private tables stay closed to public visitors |
+| 2026-11-04 | Use one public database function for the portfolio | Private tables stay closed to public visitors (replaced by a dedicated server query below) |
 | 2026-11-04 | Use a server token for GitHub data | Public repository details do not require storing user OAuth tokens |
 | 2026-11-04 | Use Node.js 22.15.0 for the initial development setup | The selected Vitest and jsdom versions need newer Node.js than the framework's 20.9 minimum; this version is already installed |
 | 2026-11-04 | Use the supported Next.js Webpack production build and Tailwind PostCSS integration | The agent sandbox blocks Turbopack's worker port; the Webpack production build passes |
 | 2026-11-04 | Use system fonts for the initial starter | The app can build without downloading fonts in a network-restricted environment |
-| 2026-11-04 | Keep `profiles.id` and add a constrained `user_id` | This preserves the planned Auth primary key while meeting the owner-column and RLS rules in `AGENTS.md` |
-| 2026-11-04 | Create browser test users through local Auth, with no application login bypass | The test-only helper rejects hosted targets, Vercel, and production execution before issuing a request |
+| 2026-11-04 | Keep `profiles.id` and add a constrained `user_id` | This preserves the planned Auth primary key while meeting the owner-column and RLS rules in `AGENTS.md` (replaced: `profiles.user_id` is now the primary key) |
+| 2026-11-04 | Create browser test users through local Auth, with no application login bypass | The test-only helper rejects hosted targets, Vercel, and production execution before issuing a request (replaced by the local owner below) |
 | 2026-11-04 | Serialize active-goal changes through a profile row write | Concurrent activations and limit changes must share a lock; stale repeatable-read writers must retry |
 | 2026-11-04 | Use explicit goal transitions and block a limit below the active count | Planned goals activate before completion; archived goals are final in this phase; existing goals are never silently moved |
 | 2026-11-04 | Keep archived topics closed to new and reactivated goals | Archiving preserves existing study history while removing the topic from active work |
 | 2026-11-04 | Bound topic/goal text inputs and validate calendar dates | The form schemas and database constraints reject empty required text and oversized input |
+| 2026-11-04 | Replace Supabase with Neon (Lakebase Postgres and Neon Auth) | Owner decision. No Supabase code or migration had been applied, so switching was cheap. Neon needs no Docker, and its compute wakes on its own instead of pausing |
+| 2026-11-04 | Build Phases 1 to 7 locally and connect Neon in Phase 8 | Owner decision. Work can continue without cloud accounts; the owner completes account setup at the end |
+| 2026-11-04 | Use Drizzle ORM with drizzle-kit SQL migrations | Typed queries and inferred types replace generated Supabase types; the same migrations run on PGlite and Neon |
+| 2026-11-04 | Use PGlite as the local and test database | It is real Postgres in Node with no Docker, so triggers, constraints, and SQL migrations behave as they will on Neon |
+| 2026-11-04 | Enforce ownership in server code and database constraints instead of RLS | The browser never queries the database; all access is server-side with a verified user ID, composite foreign keys, and triggers |
+| 2026-11-04 | Use a dev-only local owner until Phase 8 | It requires `next dev`, `LOCAL_OWNER_MODE=1`, and no `VERCEL`, and it fails closed everywhere else |
+| 2026-11-04 | Store user IDs as `text` with no foreign key into `neon_auth` | Neon Auth does not document its user ID type or app foreign keys, and Neon manages that schema |
+| 2026-11-04 | Restrict sign-ups with a server-side `ALLOWED_USER_IDS` check | Neon Auth has no documented setting to turn off sign-ups |
+| 2026-11-04 | Serve the public portfolio from one server query with an explicit column list | Without RLS, a single reviewed code path keeps private data out of the public page |
 
 ## 15. Ideas for later
 
