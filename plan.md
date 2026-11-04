@@ -69,6 +69,8 @@ The app has one owner, but the database uses `user_id` and RLS on every table. T
 - Topic names are unique for each user, ignoring capitalization.
 - Topics are archived, not permanently deleted.
 - A topic with active goals cannot be archived.
+- Archived topics cannot receive new goals or have goals made active under them. Existing inactive goals remain available for editing.
+- Topic names allow up to 100 characters; descriptions allow up to 5,000.
 
 ### Goals
 
@@ -81,8 +83,11 @@ The app has one owner, but the database uses `user_id` and RLS on every table. T
 - Moving a goal to `active` sets `started_at` if it is empty.
 - An active goal can move back to `planned`.
 - Completing a goal requires confirmation and sets `completed_at`.
+- A planned goal becomes active before it can be completed. Archived goals have no further status transitions in this phase.
 - A completed goal can be reopened if the owner is below their limit. Reopening clears `completed_at`.
 - Goals are archived, not permanently deleted.
+- The active goal limit cannot be lowered below the current number of active goals. Move goals to `planned` first.
+- Goal titles allow up to 160 characters, descriptions up to 5,000, and definitions of done up to 2,000.
 
 ### Weekly logs
 
@@ -492,6 +497,12 @@ npx create-next-app@latest app-temp --typescript --tailwind --eslint --app --src
 
 **Done when:** The owner can manage topics and goals, and the active goal limit cannot be bypassed from the browser.
 
+**Prepared November 4, 2026, at the owner's request:** A new topics/goals migration defines the enum, owner-only RLS, column permissions, composite topic ownership foreign key, unique topic names, lifecycle timestamps, archive guards, and the active-goal limit trigger. Active goal changes write-lock the owner's profile to serialize slot allocation and limit updates. A PostgreSQL test file covers isolation, forged ownership, direct API writes at the limit, required finish lines, status changes, and timestamps.
+
+The topic create/edit/archive forms, goal create/edit/status forms, active-limit settings form, topic/goal lists and detail components, input schemas, status rules, and calendar-date formatting are prepared. These components use explicit action props and presentation models; they do not simulate persistence. They are not mounted as app routes yet. Protected pages, server queries, Server Actions, generated database types, and live browser flows depend on the unfinished authentication/database setup in Phase 1. No Phase 2 checklist task is marked complete before that integration is verified.
+
+**Verification:** Lint, type checking, all 56 unit/component tests, and the production build pass. Tests include validation, confirmation, pending/error behavior, active-limit handling, empty states, and timezone-independent target dates. Supabase database reset, database tests, and type generation remain blocked because the CLI is not installed or cached; Playwright is also not installed. An attempt to start a separate temporary PostgreSQL test instance failed because shared-memory creation is blocked by the sandbox. Neither migration has been applied in this session; RLS, concurrency, and desktop/mobile browser verification remain pending.
+
 ### Phase 3: Weekly logs and projects
 
 - [ ] Create `projects`, `activities`, the `activity_type` enum, RLS policies, and indexes.
@@ -606,6 +617,10 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-04 | Use system fonts for the initial starter | The app can build without downloading fonts in a network-restricted environment |
 | 2026-11-04 | Keep `profiles.id` and add a constrained `user_id` | This preserves the planned Auth primary key while meeting the owner-column and RLS rules in `AGENTS.md` |
 | 2026-11-04 | Create browser test users through local Auth, with no application login bypass | The test-only helper rejects hosted targets, Vercel, and production execution before issuing a request |
+| 2026-11-04 | Serialize active-goal changes through a profile row write | Concurrent activations and limit changes must share a lock; stale repeatable-read writers must retry |
+| 2026-11-04 | Use explicit goal transitions and block a limit below the active count | Planned goals activate before completion; archived goals are final in this phase; existing goals are never silently moved |
+| 2026-11-04 | Keep archived topics closed to new and reactivated goals | Archiving preserves existing study history while removing the topic from active work |
+| 2026-11-04 | Bound topic/goal text inputs and validate calendar dates | The form schemas and database constraints reject empty required text and oversized input |
 
 ## 15. Ideas for later
 

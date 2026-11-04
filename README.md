@@ -2,7 +2,7 @@
 
 A personal app for focused programming goals, weekly activity, and projects. Product scope and build order live in [plan.md](plan.md); coding and security rules live in [AGENTS.md](AGENTS.md).
 
-Phase 1 preparation is in progress. The starter still runs unchanged. Auth form components, a profiles migration and RLS tests, environment validation, and a local test-user helper are prepared; live authentication is not connected yet.
+Phase 2 preparation is in progress. The starter still runs unchanged. Auth, topic, goal, and settings components, migrations, and tests are prepared; authentication and saved study data are not connected yet.
 
 ## Local development
 
@@ -72,5 +72,13 @@ npm run db:types
 ```
 
 Copy the local Supabase URL and **publishable key** into `.env.local`; use no legacy `anon` or `service_role` key. Database types must come from the running database; no placeholder type file has been created. After this setup, the remaining work is to connect the SDK clients, session proxy, OAuth routes, protected layout, and browser tests.
+
+## Topics and goals preparation
+
+The Phase 2 migration adds topics and goals with owner-only access and a composite foreign key that keeps each goal under a topic owned by the same user. Database triggers handle status timestamps, topic archiving, and active-goal limits. Active changes serialize through a profile row write; this also updates the profile's `updated_at` timestamp. Database isolation and concurrency still need verification against local Supabase.
+
+Forms for topic creation/editing/archiving, goal creation/editing/status changes, and active-limit settings are prepared under `src/features/`. They provide labels, field errors, pending states, completion confirmation, and active-goal links when a change is blocked. Lists and details include empty states, text status labels, and calendar dates that stay stable across timezones. Their action props and presentation models are ready for integration after authentication and database types are available; there are no protected topic/goal routes or persistence actions yet.
+
+The current unit/component suite has 56 passing tests. SQL tests are in `supabase/tests/database/`; neither migration has been applied, and database and desktop/mobile browser checks remain pending. See [plan.md](plan.md) for the exact verified scope.
 
 The GitHub remote is [gabriel-wargha/programming-study-tracker](https://github.com/gabriel-wargha/programming-study-tracker). The owner initialized and pushed the first scaffold commit; the remaining changes still need a Conventional Commit and push. The agent's commit attempt was blocked from writing `.git/index.lock`. No deployment has been performed.
