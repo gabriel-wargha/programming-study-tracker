@@ -11,6 +11,7 @@ export const mainNavItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/topics", label: "Topics" },
   { href: "/goals", label: "Goals" },
+  { href: "/projects", label: "Projects" },
   { href: "/settings", label: "Settings" },
 ];
 
