@@ -1,6 +1,6 @@
 # Programming Study Tracker Plan
 
-Last updated: November 4, 2026
+Last updated: November 5, 2026
 
 ## 1. Product summary
 
@@ -509,18 +509,20 @@ No cloud account or Docker is needed.
 
 ### Phase 3: Weekly logs and projects
 
-- [ ] Create `projects`, `activities`, the `activity_type` enum, and indexes.
-- [ ] Add date helpers for Monday-to-Sunday weeks, with tests.
-- [ ] Build `/goals/[id]/log`.
-- [ ] Support several activity types in one save.
-- [ ] Support choosing an existing project or adding a new one with a Git link.
-- [ ] Show activity history on the goal page, grouped by week, with weekly time totals.
-- [ ] Support editing and deleting activities.
-- [ ] Build the project list and project page.
-- [ ] Add `https`-only URL validation.
-- [ ] Add unit, ownership, and component tests.
+- [x] Create `projects`, `activities`, the `activity_type` enum, and indexes.
+- [x] Add date helpers for Monday-to-Sunday weeks, with tests.
+- [x] Build `/goals/[id]/log`.
+- [x] Support several activity types in one save.
+- [x] Support choosing an existing project or adding a new one with a Git link.
+- [x] Show activity history on the goal page, grouped by week, with weekly time totals.
+- [x] Support editing and deleting activities.
+- [x] Build the project list and project page.
+- [x] Add `https`-only URL validation.
+- [x] Add unit, ownership, and component tests.
 
 **Done when:** The owner can open an active goal, select what they did, add time, attach a project, and see it in that week's history.
+
+**Verified November 5, 2026:** Lint, type checking, 156 unit/component/database tests, the production build, and the full Playwright suite pass. Migrations `0004` (tables, enum, composite owner foreign keys, `https` URL and project-link checks, indexes) and `0005` (triggers raising `SL007` for logging on a goal that isn't active and `SL008` for future dates, plus ownership and `updated_at` triggers) apply to a fresh database. 15 database rule tests cover minutes, descriptions, the project-link check, the active-goal rule, editing history on goals that are no longer active, future dates on insert and update, ownership changes, and URL checks. 12 ownership tests prove a second user cannot read, log on, edit, delete, or link to the first user's goals, projects, or activities, and that the composite foreign keys hold with the trigger disabled. They also show that a failed log rolls back a new project. The Playwright flow at desktop and mobile widths logs two activity types with time and a new project, checks the https error, sees the weekly total, edits and deletes activities, opens the project page, and confirms a planned goal can't be logged. Screens were checked visually at both widths with no horizontal scroll.
 
 ### Phase 4: Dashboard
 
@@ -646,6 +648,10 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-04 | Keep scope-taking reads and writes in `queries.ts` and `mutations.ts`, and only form actions in `actions.ts` | Every export of a `"use server"` file is a public endpoint, so a function that accepts a user ID must never live there |
 | 2026-11-04 | Apply the owner filter inside shared select helpers | Callers can narrow a query but cannot forget the `user_id` filter |
 | 2026-11-04 | Revalidate the whole app layout after topic, goal, and settings changes | The same data appears on the dashboard, lists, and detail pages |
+| 2026-11-05 | The server and database treat a date as "in the future" only when it is later than today in UTC+14; the browser form checks the owner's local date | The app does not store the owner's time zone, and a stricter server check would reject valid evening entries for owners behind UTC |
+| 2026-11-05 | Save a log (new project plus activity rows) in one transaction | A log that fails, for example because the goal is no longer active, leaves no orphan project |
+| 2026-11-05 | Activities keep their goal, and activities on completed or archived goals can still be edited and deleted | History stays correct after a goal changes status; only new activities need an active goal (`SL006`, `SL007`) |
+| 2026-11-05 | Projects can be created and edited but not deleted in Phase 3 | The plan does not define project deletion, and activities reference projects |
 
 ## 15. Ideas for later
 

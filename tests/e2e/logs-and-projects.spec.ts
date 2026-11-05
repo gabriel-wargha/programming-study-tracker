@@ -101,7 +101,8 @@ test("the owner adds a project from the projects page", async ({ page }, info) =
   await expect(page.getByLabel("Live site URL (optional)")).toHaveAccessibleDescription(/starts with https:\/\//);
   await page.getByLabel("Live site URL (optional)").fill("https://portfolio.example");
   await page.getByRole("button", { name: "Create project" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+  // The first visit compiles the project route on a cold dev server.
+  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("No goals link to this project yet.")).toBeVisible();
 });
 

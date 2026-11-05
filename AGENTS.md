@@ -6,7 +6,7 @@ Programming Study Tracker is a personal web app for organizing programming study
 
 `plan.md` defines the scope, product rules, data model, screens, and build order. Read it before starting work.
 
-**Current status:** The project switched from Supabase to Neon. Phases 1 to 7 are built locally on PGlite with a dev-only local owner; Neon, Neon Auth, and deployment are Phase 8. Topic, goal, settings, and auth components are prepared. Phases 1 and 2 (local foundation, topics and goals) are done; Phase 3 (weekly logs and projects) is next. See `plan.md` for verified progress.
+**Current status:** The project switched from Supabase to Neon. Phases 1 to 7 are built locally on PGlite with a dev-only local owner; Neon, Neon Auth, and deployment are Phase 8. Topic, goal, settings, and auth components are prepared. Phases 1 to 3 (local foundation, topics and goals, weekly logs and projects) are done; Phase 4 (dashboard) is next. See `plan.md` for verified progress.
 
 ## Stack
 
