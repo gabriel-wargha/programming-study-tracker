@@ -8,6 +8,8 @@ const e2eEnv = { LOCAL_OWNER_MODE: "1", PGLITE_DATA_DIR: ".data/e2e" };
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
+  // Every test acts as the same local owner, so tests share data and run one at a time.
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: "list",

@@ -490,16 +490,20 @@ No cloud account or Docker is needed.
 
 ### Phase 2: Topics and goals
 
-- [ ] Create `topics`, `goals`, the `goal_status` enum, and their indexes, with the composite topic ownership foreign key.
-- [ ] Port the goal and topic guard triggers (status transitions, timestamps, archive rules, and the active goal limit with profile-row locking) to a custom SQL migration.
-- [ ] Build topic creation, editing, and archiving.
-- [ ] Build goal creation and editing with a required definition of done.
-- [ ] Build the goal status changes from section 5.
-- [ ] Add the active goal limit to `/settings`, enforced by the database trigger.
-- [ ] Build the topic list, topic page, goal list, and goal page.
-- [ ] Add unit, ownership, database rule, and component tests.
+- [x] Create `topics`, `goals`, the `goal_status` enum, and their indexes, with the composite topic ownership foreign key.
+- [x] Port the goal and topic guard triggers (status transitions, timestamps, archive rules, and the active goal limit with profile-row locking) to a custom SQL migration.
+- [x] Build topic creation, editing, and archiving.
+- [x] Build goal creation and editing with a required definition of done.
+- [x] Build the goal status changes from section 5.
+- [x] Add the active goal limit to `/settings`, enforced by the database trigger.
+- [x] Build the topic list, topic page, goal list, and goal page.
+- [x] Add unit, ownership, database rule, and component tests.
 
 **Done when:** The owner can manage topics and goals, and the active goal limit cannot be bypassed through any Server Action or direct database write.
+
+**Verified November 4, 2026:** Lint, type checking, 75 unit/component/database tests, the production build, and 12 Playwright tests pass. 18 database rule tests cover text constraints, case-insensitive unique topic names, every status transition, trigger-owned timestamps, the active limit for direct inserts and updates (including reopening and lowering the limit), per-user limit counting, and archive rules. 11 ownership tests prove that a second user cannot read, update, archive, change the status of, or move goals into the first user's data through the query and mutation layer, and that the composite foreign key rejects cross-owner goals even with the trigger disabled. A Playwright flow at desktop and mobile widths covers settings, topic validation, duplicate names, goal creation from a topic, the archive block for active goals, completion confirmation, editing, status filters, archiving, and 404s for unknown or malformed IDs. Screens were checked visually at both widths with no horizontal scroll.
+
+**Not verified until Phase 8:** Concurrent activations. PGlite has a single connection, so the profile-row locking is tested only for correctness, not under real concurrency; run a concurrency check against a Neon branch in Phase 8.
 
 **Prepared November 4, 2026:** The topic create/edit/archive forms, goal create/edit/status forms, active-limit settings form, topic and goal lists and detail components, input schemas, status rules, and calendar-date formatting exist with 56 passing tests. They take action props and presentation models, so they work with any data layer. The rules in the superseded Supabase migration (`supabase/migrations/20261104173000_create_topics_and_goals.sql`, in Git history at commit `edfa92c`) are the reference for the trigger port.
 
@@ -638,6 +642,10 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-04 | Store user IDs as `text` with no foreign key into `neon_auth` | Neon Auth does not document its user ID type or app foreign keys, and Neon manages that schema |
 | 2026-11-04 | Restrict sign-ups with a server-side `ALLOWED_USER_IDS` check | Neon Auth has no documented setting to turn off sign-ups |
 | 2026-11-04 | Serve the public portfolio from one server query with an explicit column list | Without RLS, a single reviewed code path keeps private data out of the public page |
+| 2026-11-04 | Raise custom SQLSTATE codes (`SL001` to `SL006`) from the topic and goal triggers | Server code maps rule failures to messages without matching on error text |
+| 2026-11-04 | Keep scope-taking reads and writes in `queries.ts` and `mutations.ts`, and only form actions in `actions.ts` | Every export of a `"use server"` file is a public endpoint, so a function that accepts a user ID must never live there |
+| 2026-11-04 | Apply the owner filter inside shared select helpers | Callers can narrow a query but cannot forget the `user_id` filter |
+| 2026-11-04 | Revalidate the whole app layout after topic, goal, and settings changes | The same data appears on the dashboard, lists, and detail pages |
 
 ## 15. Ideas for later
 

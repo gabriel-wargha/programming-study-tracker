@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils";
 export type NavItem = { href: string; label: string };
 
 // Sections are added here as each phase builds its routes.
-export const mainNavItems: NavItem[] = [{ href: "/dashboard", label: "Dashboard" }];
+export const mainNavItems: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/topics", label: "Topics" },
+  { href: "/goals", label: "Goals" },
+  { href: "/settings", label: "Settings" },
+];
 
 export function MainNav({ items = mainNavItems }: { items?: NavItem[] }) {
   const pathname = usePathname();

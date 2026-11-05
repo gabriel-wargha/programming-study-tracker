@@ -9,7 +9,7 @@ The project now uses Neon instead of Supabase. Phases 1 to 7 are built and run e
 - **Database:** PGlite, which is Postgres embedded in Node. It needs no Docker or account and stores data in `.data/`.
 - **User:** a fixed local owner that works only under `npm run dev`.
 
-Phase 8 connects the same schema to Neon, adds GitHub sign-in through Neon Auth, and deploys to Vercel. The local foundation (Phase 1) is done: `npm run dev` opens an empty dashboard as the local owner. Topics and goals (Phase 2) are next.
+Phase 8 connects the same schema to Neon, adds GitHub sign-in through Neon Auth, and deploys to Vercel. Phases 1 and 2 are done: as the local owner you can create, edit, and archive topics; create and edit goals; move goals through their statuses; and set the active goal limit. Weekly logs and projects (Phase 3) are next.
 
 ## Local development
 

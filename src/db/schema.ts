@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
-import { check, pgTable, smallint, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  type AnyPgColumn, check, date, foreignKey, index, pgEnum, pgTable, smallint, text, timestamp, unique, uniqueIndex, uuid,
+} from "drizzle-orm/pg-core";
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -26,3 +28,68 @@ export const profiles = pgTable(
 );
 
 export type Profile = typeof profiles.$inferSelect;
+
+export const goalStatus = pgEnum("goal_status", ["planned", "active", "completed", "archived"]);
+
+/** Required text: trimmed, not blank, and within a length limit. */
+const requiredText = (column: AnyPgColumn, max: number) =>
+  sql`${column} = btrim(${column}) and ${column} ~ '[^[:space:]]' and char_length(${column}) between 1 and ${sql.raw(String(max))}`;
+
+export const topics = pgTable(
+  "topics",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull().references(() => profiles.userId, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    // Lets goals reference a topic together with its owner.
+    unique("topics_id_user_id_key").on(table.id, table.userId),
+    uniqueIndex("topics_owner_name_key").on(table.userId, sql`lower(${table.name})`),
+    check("topics_name_check", requiredText(table.name, 100)),
+    check("topics_description_check", sql`char_length(${table.description}) <= 5000`),
+  ],
+);
+
+export const goals = pgTable(
+  "goals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull().references(() => profiles.userId, { onDelete: "cascade" }),
+    topicId: uuid("topic_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    definitionOfDone: text("definition_of_done").notNull(),
+    status: goalStatus("status").notNull().default("planned"),
+    targetDate: date("target_date", { mode: "string" }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("goals_id_user_id_key").on(table.id, table.userId),
+    // A goal can only belong to a topic owned by the same user.
+    foreignKey({
+      name: "goals_owned_topic_fkey",
+      columns: [table.topicId, table.userId],
+      foreignColumns: [topics.id, topics.userId],
+    }),
+    index("goals_owner_status_idx").on(table.userId, table.status),
+    index("goals_topic_idx").on(table.topicId, table.userId),
+    check("goals_title_check", requiredText(table.title, 160)),
+    check("goals_description_check", sql`char_length(${table.description}) <= 5000`),
+    check("goals_definition_of_done_check", requiredText(table.definitionOfDone, 2000)),
+    check(
+      "goals_completion_timestamp_check",
+      sql`(${table.status} = 'completed' and ${table.completedAt} is not null)
+        or (${table.status} in ('planned', 'active') and ${table.completedAt} is null)
+        or ${table.status} = 'archived'`,
+    ),
+  ],
+);
+
+export type Topic = typeof topics.$inferSelect;
+export type Goal = typeof goals.$inferSelect;

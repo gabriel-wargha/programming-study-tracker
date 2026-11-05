@@ -27,7 +27,10 @@ export function GoalStatusForm({ action, goalId, currentStatus, activeGoals, act
     if (!parsed.success) return { ok: false, error: "Check the highlighted fields.", fieldErrors: z.flattenError(parsed.error).fieldErrors };
     const allowed = assessGoalTransition({ from: currentStatus, to: parsed.data.status, activeCount: activeGoals.length, limit: activeGoalLimit, topicArchived, confirmed: parsed.data.confirmed });
     if (!allowed.ok) return { ok: false, error: allowed.error, ...(parsed.data.status === "active" ? { activeGoals } : {}) };
-    return action(previous, formData);
+    const result = await action(previous, formData);
+    // The available options change with the new status, so clear the old choice.
+    if (result.ok) { setStatus(""); setConfirmed(false); }
+    return result;
   }, null);
   const errors = state?.ok === false ? state.fieldErrors : undefined;
   if (currentStatus === "archived") return <p className="text-sm text-muted-foreground">This goal is archived.</p>;

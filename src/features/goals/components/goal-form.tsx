@@ -74,7 +74,7 @@ export function GoalForm({ action, topics, initialValues, activeGoals, activeGoa
           <FieldError id={`${id}-description-error`} errors={errors?.description} />
         </div>
         <div>
-          <label htmlFor={`${id}-date`} className="text-sm font-medium">Target date <span className="font-normal text-muted-foreground">(optional)</span></label>
+          <label htmlFor={`${id}-date`} className="block text-sm font-medium">Target date <span className="font-normal text-muted-foreground">(optional)</span></label>
           <Input id={`${id}-date`} name="targetDate" type="date" value={values.targetDate} onChange={(event) => update("targetDate", event.target.value)}
             className="mt-2 max-w-xs" aria-invalid={Boolean(errors?.targetDate)} aria-describedby={errors?.targetDate ? `${id}-date-error` : undefined} />
           <FieldError id={`${id}-date-error`} errors={errors?.targetDate} />

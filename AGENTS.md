@@ -6,7 +6,7 @@ Programming Study Tracker is a personal web app for organizing programming study
 
 `plan.md` defines the scope, product rules, data model, screens, and build order. Read it before starting work.
 
-**Current status:** The project switched from Supabase to Neon. Phases 1 to 7 are built locally on PGlite with a dev-only local owner; Neon, Neon Auth, and deployment are Phase 8. Topic, goal, settings, and auth components are prepared. Phase 1 (local foundation) is done; Phase 2 (topics and goals) is next. See `plan.md` for verified progress.
+**Current status:** The project switched from Supabase to Neon. Phases 1 to 7 are built locally on PGlite with a dev-only local owner; Neon, Neon Auth, and deployment are Phase 8. Topic, goal, settings, and auth components are prepared. Phases 1 and 2 (local foundation, topics and goals) are done; Phase 3 (weekly logs and projects) is next. See `plan.md` for verified progress.
 
 ## Stack
 
@@ -49,8 +49,9 @@ src/
   app/                  Routes, layouts, and Route Handlers
   components/ui/        Shared shadcn/ui components
   features/<feature>/
-    actions.ts          Server Actions
-    queries.ts          Server-side reads
+    actions.ts          Server Actions ("use server"; form actions only)
+    queries.ts          Server-side reads that take a UserScope
+    mutations.ts        Server-side writes that take a UserScope
     schemas.ts          Zod schemas
     components/         Feature components
     *.test.ts(x)        Tests beside the code they cover
@@ -71,7 +72,8 @@ tests/e2e/              Playwright tests
 - Before Next.js work, read the relevant guide in `node_modules/next/dist/docs/`. Do not rely on memory for framework APIs.
 - Use `proxy.ts`, not `middleware.ts`.
 - Use Server Components by default. Add `"use client"` only when a component needs browser interactivity.
-- Read data in `queries.ts`. Change data in Server Actions.
+- Read data in `queries.ts` and write it in `mutations.ts`. Both take a `UserScope` (`{ db, userId }`) from `requireScope()`. Server Actions in `actions.ts` validate input, call `requireScope()`, and then call a mutation.
+- Never export a function that accepts a user ID or scope from a `"use server"` file. Every export there is a public endpoint that the browser can call with any arguments.
 - Use Route Handlers only when a URL endpoint is required, such as the OAuth callback.
 - Validate every Server Action input with Zod, on the server, even if the form already validated it.
 - Return `{ ok: true, data }` or `{ ok: false, error }` from Server Actions for expected failures.
@@ -88,7 +90,7 @@ tests/e2e/              Playwright tests
 
 - `proxy.ts` is not enough to protect the app. Call `requireUser()` in every protected page, query, and Server Action.
 - Take `user_id` only from `requireUser()`. Never accept it from the browser.
-- Filter every owned-table query by that `user_id`, including updates and deletes. A missing filter is a security bug.
+- Filter every owned-table query by that `user_id`, including updates and deletes. Put the filter inside shared select helpers so callers cannot leave it out. A missing filter is a security bug.
 - Import the database client only from server code. Mark data modules with `import "server-only"`.
 - Never send a database URL, cookie secret, or token to the browser. Never prefix them with `NEXT_PUBLIC_`.
 - The local owner must work only when `NODE_ENV` is `development`, `LOCAL_OWNER_MODE=1`, and `VERCEL` is unset. It must fail closed everywhere else. Never add another login bypass.
@@ -105,7 +107,7 @@ tests/e2e/              Playwright tests
 - Never edit a migration that has been committed or applied outside your local database. Add a new one.
 - Give every owned table a `user_id` column that references `profiles.user_id`.
 - Use composite foreign keys so a row can reference only rows owned by the same user.
-- Enforce rules that must not be bypassed (limits, status transitions, archive rules) in the database as well as in server code.
+- Enforce rules that must not be bypassed (limits, status transitions, archive rules) in the database as well as in server code. Raise custom SQLSTATE codes from triggers and list them in `src/lib/db/errors.ts`.
 - Create views with `security_invoker = true`.
 - Set a fixed `search_path` on every function, and on every `SECURITY DEFINER` function.
 - Store activity dates as PostgreSQL `date` values, not timestamps.

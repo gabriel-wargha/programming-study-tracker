@@ -1,5 +1,5 @@
 import { act } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 import { GoalForm } from "@/features/goals/components/goal-form";
@@ -25,7 +25,7 @@ test("a goal without a definition of done shows a visible, associated field erro
   render(<GoalForm action={action} topics={[topic]} activeGoals={[]} activeGoalLimit={3} initialValues={{ ...goalValues, definitionOfDone: "" }} />);
   await user.click(screen.getByRole("button", { name: "Create goal" }));
   const input = screen.getByLabelText("Definition of done");
-  expect(input).toHaveAttribute("aria-invalid", "true");
+  await waitFor(() => expect(input).toHaveAttribute("aria-invalid", "true"));
   expect(input).toHaveAccessibleDescription(expect.stringContaining("Describe what done looks like."));
   expect(action).not.toHaveBeenCalled();
 });
@@ -37,6 +37,7 @@ test("a full active limit still permits a planned goal and lists current active 
   expect(screen.getByRole("option", { name: "Active" })).toBeDisabled();
   expect(screen.getByRole("link", { name: "Build a form" })).toHaveAttribute("href", `/goals/${activeGoals[0].id}`);
   await user.click(screen.getByRole("button", { name: "Create goal" }));
+  await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
   expect(action.mock.calls[0][1].get("status")).toBe("planned");
 });
 
@@ -52,10 +53,11 @@ test("completion requires explicit confirmation before submitting", async () => 
   render(<GoalStatusForm action={action} goalId={activeGoals[0].id} currentStatus="active" activeGoals={activeGoals} activeGoalLimit={3} />);
   await user.selectOptions(screen.getByLabelText("Move goal to"), "completed");
   await user.click(screen.getByRole("button", { name: "Complete goal" }));
-  expect(screen.getByText("Confirm that you've met the definition of done.")).toBeVisible();
+  expect(await screen.findByText("Confirm that you've met the definition of done.")).toBeVisible();
   expect(action).not.toHaveBeenCalled();
   await user.click(screen.getByRole("checkbox"));
   await user.click(screen.getByRole("button", { name: "Complete goal" }));
+  await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
   expect(action.mock.calls[0][1].get("confirmed")).toBe("on");
 });
 
@@ -65,7 +67,7 @@ test("reopening at the limit displays the active goals without submitting", asyn
   render(<GoalStatusForm action={action} goalId={topic.id} currentStatus="completed" activeGoals={activeGoals} activeGoalLimit={1} />);
   await user.selectOptions(screen.getByLabelText("Move goal to"), "active");
   await user.click(screen.getByRole("button", { name: "Update status" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("Your active goal limit is reached.");
+  expect(await screen.findByRole("alert")).toHaveTextContent("Your active goal limit is reached.");
   expect(screen.getByRole("link", { name: "Build a form" })).toBeVisible();
   expect(action).not.toHaveBeenCalled();
 });
@@ -77,7 +79,7 @@ test("lowering the limit below the active count is blocked with useful links", a
   await user.clear(screen.getByLabelText("Maximum active goals"));
   await user.type(screen.getByLabelText("Maximum active goals"), "1");
   await user.click(screen.getByRole("button", { name: "Save limit" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("Move active goals to planned");
+  expect(await screen.findByRole("alert")).toHaveTextContent("Move active goals to planned");
   expect(screen.getAllByRole("link")).toHaveLength(2);
   expect(action).not.toHaveBeenCalled();
 });
@@ -92,10 +94,10 @@ test("a server error preserves topic input and the pending state prevents anothe
   expect(name).toHaveFocus();
   await user.type(name, "React");
   await user.click(screen.getByRole("button", { name: "Create topic" }));
-  expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+  expect(await screen.findByRole("button", { name: "Saving…" })).toBeDisabled();
   expect(name).toBeDisabled();
   await act(async () => { settle?.({ ok: false, error: "A topic with this name already exists." }); });
-  expect(screen.getByRole("alert")).toHaveTextContent("already exists");
+  expect(await screen.findByRole("alert")).toHaveTextContent("already exists");
   expect(name).toHaveValue("React");
 });
 

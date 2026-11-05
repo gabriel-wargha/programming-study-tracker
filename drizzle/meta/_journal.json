@@ -15,6 +15,20 @@
       "when": 1793834281212,
       "tag": "0001_updated_at_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793834928559,
+      "tag": "0002_create_topics_and_goals",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793834938354,
+      "tag": "0003_topic_and_goal_rules",
+      "breakpoints": true
     }
   ]
 }

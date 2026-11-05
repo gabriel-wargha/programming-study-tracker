@@ -18,11 +18,11 @@ test("GitHub sign-in has a pending state and displays an expected failure", asyn
   await user.tab();
   expect(button).toHaveFocus();
   await user.keyboard("{Enter}");
-  expect(screen.getByRole("button", { name: "Connecting to GitHub…" })).toBeDisabled();
+  expect(await screen.findByRole("button", { name: "Connecting to GitHub…" })).toBeDisabled();
   expect(action.mock.calls[0][1].get("intent")).toBe("github");
 
   await act(async () => { settle?.({ ok: false, error: "Please try signing in again." }); });
-  expect(screen.getByRole("alert")).toHaveTextContent("Please try signing in again.");
+  expect(await screen.findByRole("alert")).toHaveTextContent("Please try signing in again.");
   expect(screen.getByRole("button", { name: "Continue with GitHub" })).toBeEnabled();
 });
 
