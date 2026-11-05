@@ -24,10 +24,11 @@ function summaries({ db, userId }: UserScope, filter?: SQL) {
 }
 
 /** Most recently worked on first; projects with no activity last, newest first. */
-export async function listProjects(scope: UserScope): Promise<ProjectSummary[]> {
-  return summaries(scope).orderBy(
+export async function listProjects(scope: UserScope, options: { limit?: number } = {}): Promise<ProjectSummary[]> {
+  const ordered = summaries(scope).orderBy(
     sql`max(${activities.occurredOn}) desc nulls last`, desc(projects.createdAt),
   );
+  return options.limit ? ordered.limit(options.limit) : ordered;
 }
 
 export async function getProject(scope: UserScope, id: string): Promise<ProjectSummary | null> {
