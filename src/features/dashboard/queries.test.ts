@@ -14,7 +14,7 @@ let database: Awaited<ReturnType<typeof createTestDatabase>>;
 let alice: UserScope;
 let bob: UserScope;
 let topicId: string;
-const week = { start: "2026-11-02", end: "2026-11-08" };
+const week = { start: "2026-10-26", end: "2026-11-01" };
 
 function expectOk<T>(result: { ok: true; data: T } | { ok: false; error: string }): T {
   if (!result.ok) throw new Error(result.error);
@@ -40,16 +40,16 @@ test("active goals show their latest activity and this week's progress", async (
   const forms = await goal(alice, "Forms");
   const hooks = await goal(alice, "Hooks");
   const parked = await goal(alice, "Parked");
-  await log("alice", forms, "2026-10-30", 60, "Last week");
-  await log("alice", forms, "2026-11-03", 30, "Older this week");
-  await log("alice", forms, "2026-11-05", null, "Newest");
-  await log("alice", parked, "2026-11-04", 10);
+  await log("alice", forms, "2026-10-23", 60, "Last week");
+  await log("alice", forms, "2026-10-27", 30, "Older this week");
+  await log("alice", forms, "2026-10-29", null, "Newest");
+  await log("alice", parked, "2026-10-28", 10);
   expectOk(await changeGoalStatus(alice, parked, "planned"));
 
   expect(await listActiveGoalProgress(alice, week)).toEqual([
     {
       id: forms, title: "Forms", topicName: "React",
-      latestActivity: { type: "reading", description: "Newest", occurredOn: "2026-11-05" },
+      latestActivity: { type: "reading", description: "Newest", occurredOn: "2026-10-29" },
       weekActivityCount: 2, weekMinutes: 30,
     },
     { id: hooks, title: "Hooks", topicName: "React", latestActivity: null, weekActivityCount: 0, weekMinutes: 0 },
@@ -59,17 +59,17 @@ test("active goals show their latest activity and this week's progress", async (
 test("the week summary counts every goal but only this week and only timed minutes", async () => {
   const forms = await goal(alice, "Forms");
   const hooks = await goal(alice, "Hooks");
-  await log("alice", forms, "2026-11-02", 45);
-  await log("alice", hooks, "2026-11-08", null);
-  await log("alice", hooks, "2026-11-09", 120);
-  await log("alice", hooks, "2026-11-01", 120);
+  await log("alice", forms, "2026-10-26", 45);
+  await log("alice", hooks, "2026-11-01", null);
+  await log("alice", hooks, "2026-11-02", 120);
+  await log("alice", hooks, "2026-10-25", 120);
 
   expect(await getWeekSummary(alice, week)).toEqual({ ...week, activityCount: 2, totalMinutes: 45, untimedCount: 1 });
 });
 
 test("dashboard data is scoped to the owner", async () => {
   const forms = await goal(alice, "Forms");
-  await log("alice", forms, "2026-11-03", 30);
+  await log("alice", forms, "2026-10-27", 30);
   expectOk(await createProject(alice, { title: "Lab", repoUrl: "https://github.com/a/lab", liveUrl: null, description: null }));
 
   expect(await listActiveGoalProgress(bob, week)).toEqual([]);
@@ -84,7 +84,7 @@ test("recent projects are limited and ordered by latest activity", async () => {
     ids.push(expectOk(await createProject(alice, { title, repoUrl: "https://github.com/a/b", liveUrl: null, description: null })).id);
   }
   await database.db.insert(activities).values({
-    userId: "alice", goalId: forms, type: "project", projectId: ids[0], description: "Built", occurredOn: "2026-11-04",
+    userId: "alice", goalId: forms, type: "project", projectId: ids[0], description: "Built", occurredOn: "2026-10-28",
   });
   const recent = await listProjects(alice, { limit: 4 });
   expect(recent).toHaveLength(4);

@@ -36,8 +36,8 @@ export function ActiveGoalProgress({ goals, activeGoalLimit }: { goals: Dashboar
                   <p>No activity logged yet.</p>
                 )}
               </div>
-              <Link href={`/goals/${goal.id}/log`} className="mt-4 inline-flex min-h-11 w-fit items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none">
-                Log this week<span className="sr-only">: {goal.title}</span>
+              <Link href={`/goals/${goal.id}/log`} aria-label={`Log this week: ${goal.title}`} className="mt-4 inline-flex min-h-11 w-fit items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none">
+                Log this week
               </Link>
             </li>
           ))}

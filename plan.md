@@ -526,14 +526,16 @@ No cloud account or Docker is needed.
 
 ### Phase 4: Dashboard
 
-- [ ] Build `/dashboard` with active goals, their latest activity, and **Log this week** links.
-- [ ] Add this week's total time and activity count.
-- [ ] Add recent projects.
-- [ ] Add loading, empty, and error states across the app.
-- [ ] Test the main screens at desktop and mobile widths.
-- [ ] Add a Playwright test for the main user flow.
+- [x] Build `/dashboard` with active goals, their latest activity, and **Log this week** links.
+- [x] Add this week's total time and activity count.
+- [x] Add recent projects.
+- [x] Add loading, empty, and error states across the app.
+- [x] Test the main screens at desktop and mobile widths.
+- [x] Add a Playwright test for the main user flow.
 
 **Done when:** The full main user flow from section 4 works locally and is covered by a Playwright test.
+
+**Verified November 5, 2026:** Lint, type checking, 168 unit/component/database tests, the production build, and all 20 Playwright tests pass. The dashboard shows active goals with this week's activity count and time, the latest activity, and a **Log this week** link, plus this week's totals across all goals and the four most recently worked-on projects. Each section has an empty state. The app has a loading screen, an error screen with **Try again**, a global error screen, and not-found pages inside and outside the app shell. Database tests cover latest-activity selection, week boundaries, timed-only totals, owner scoping, and the recent-projects limit; unit tests cover the reported time zone and its UTC fallback. `tests/e2e/main-flow.spec.ts` runs the section 4 flow at desktop and mobile widths, from topic to completed goal, with no horizontal scroll. Screens were checked visually at both widths.
 
 ### Phase 5: Progress and consistency
 
@@ -652,6 +654,8 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-05 | Save a log (new project plus activity rows) in one transaction | A log that fails, for example because the goal is no longer active, leaves no orphan project |
 | 2026-11-05 | Activities keep their goal, and activities on completed or archived goals can still be edited and deleted | History stays correct after a goal changes status; only new activities need an active goal (`SL006`, `SL007`) |
 | 2026-11-05 | Projects can be created and edited but not deleted in Phase 3 | The plan does not define project deletion, and activities reference projects |
+| 2026-11-05 | The browser reports its time zone in a `study_time_zone` cookie; the server uses it (validated, UTC fallback) to work out the owner's "today" and current week | The dashboard, weekly review, and stalled alerts need the owner's week; the cookie holds no secret and an invalid value only falls back to UTC |
+| 2026-11-05 | Use one `loading.tsx` for the whole app, so unknown IDs return the not-found page with HTTP 200 and `noindex` instead of a 404 status | A loading screen starts streaming before `notFound()` runs; for a private, signed-in app a soft 404 is harmless, and tests check the not-found page instead |
 
 ## 15. Ideas for later
 

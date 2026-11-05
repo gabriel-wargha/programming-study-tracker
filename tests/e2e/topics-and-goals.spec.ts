@@ -74,7 +74,9 @@ test("the owner manages a topic and a goal from creation to archive", async ({ p
 
 test("unknown and malformed IDs show a not found page", async ({ page }) => {
   for (const path of ["/topics/not-a-uuid", "/goals/00000000-0000-4000-8000-000000000000"]) {
-    const response = await page.goto(path);
-    expect(response?.status()).toBe(404);
+    await page.goto(path);
+    // Pages stream behind a loading screen, so not-found arrives as a page rather than a 404 status.
+    await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+    await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
   }
 });

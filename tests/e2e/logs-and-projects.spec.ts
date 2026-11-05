@@ -18,6 +18,8 @@ async function createActiveGoal(page: Page, suffix: string) {
 }
 
 test("the owner logs a week of work with time and a new project", async ({ page }, info) => {
+  // A long flow; on a cold dev server each route compiles on first visit.
+  test.setTimeout(60_000);
   const suffix = `${info.project.name}-${Date.now()}`;
   const projectTitle = `Action lab ${suffix}`;
   await createActiveGoal(page, suffix);
@@ -108,7 +110,9 @@ test("the owner adds a project from the projects page", async ({ page }, info) =
 
 test("unknown project and log IDs show a not found page", async ({ page }) => {
   for (const path of ["/projects/not-a-uuid", "/projects/00000000-0000-4000-8000-000000000000", "/goals/00000000-0000-4000-8000-000000000000/log"]) {
-    const response = await page.goto(path);
-    expect(response?.status()).toBe(404);
+    await page.goto(path);
+    // Pages stream behind a loading screen, so not-found arrives as a page rather than a 404 status.
+    await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+    await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
   }
 });
