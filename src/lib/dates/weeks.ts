@@ -21,6 +21,11 @@ export function addDays(date: string, days: number): string {
   return fromUtc(new Date(toUtc(date).getTime() + days * dayInMs));
 }
 
+/** Whole days from `from` to `to`; negative when `to` is earlier. */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / dayInMs);
+}
+
 /** The Monday on or before `date`. */
 export function startOfWeek(date: string): string {
   const day = toUtc(date).getUTCDay(); // 0 is Sunday

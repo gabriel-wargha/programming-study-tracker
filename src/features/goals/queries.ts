@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, asc, eq, type SQL } from "drizzle-orm";
-import { goals, profiles, topics } from "@/db/schema";
+import { goalActivitySummary, goals, profiles, topics } from "@/db/schema";
 import type { GoalSummary } from "@/features/goals/schemas";
 import type { UserScope } from "@/lib/auth/scope";
 import type { ActiveGoalLink } from "@/lib/forms/action-state";
@@ -62,4 +62,20 @@ export async function getActiveGoalLimit({ db, userId }: UserScope): Promise<num
     .where(eq(profiles.userId, userId));
   if (!profile) throw new Error("The signed-in user has no profile.");
   return profile.limit;
+}
+
+/** Totals from the summary view, plus what's needed to check whether the goal stalled. */
+export async function getGoalActivitySummary({ db, userId }: UserScope, id: string) {
+  if (!isUuid(id)) return null;
+  const [row] = await db.select({
+    status: goals.status,
+    startedAt: goals.startedAt,
+    lastActivityOn: goalActivitySummary.lastActivityOn,
+    activityCount: goalActivitySummary.activityCount,
+    totalMinutes: goalActivitySummary.totalMinutes,
+  }).from(goals)
+    .leftJoin(goalActivitySummary, and(eq(goalActivitySummary.goalId, goals.id), eq(goalActivitySummary.userId, goals.userId)))
+    .where(and(eq(goals.id, id), eq(goals.userId, userId)));
+  if (!row) return null;
+  return { ...row, activityCount: row.activityCount ?? 0, totalMinutes: row.totalMinutes ?? 0 };
 }

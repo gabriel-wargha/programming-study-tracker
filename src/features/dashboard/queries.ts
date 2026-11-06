@@ -3,14 +3,19 @@ import "server-only";
 import { and, asc, between, desc, eq, inArray, sql } from "drizzle-orm";
 import { activities, goals, topics } from "@/db/schema";
 import type { DashboardGoal, WeekSummary } from "@/features/dashboard/schemas";
+import { daysWithoutActivity, isStalled } from "@/features/goals/stalled";
 import type { UserScope } from "@/lib/auth/scope";
-import { addDays } from "@/lib/dates/weeks";
+import { addDays, todayInTimeZone } from "@/lib/dates/weeks";
 
 type Week = { start: string; end: string };
+type OwnerCalendar = { today: string; timeZone: string; week: Week };
 
 /** Active goals with their latest activity and this week's progress. */
-export async function listActiveGoalProgress({ db, userId }: UserScope, week: Week): Promise<DashboardGoal[]> {
-  const active = await db.select({ id: goals.id, title: goals.title, topicName: topics.name }).from(goals)
+export async function listActiveGoalProgress(
+  { db, userId }: UserScope,
+  { today, timeZone, week }: OwnerCalendar,
+): Promise<DashboardGoal[]> {
+  const active = await db.select({ id: goals.id, title: goals.title, topicName: topics.name, startedAt: goals.startedAt }).from(goals)
     .innerJoin(topics, and(eq(topics.id, goals.topicId), eq(topics.userId, goals.userId)))
     .where(and(eq(goals.userId, userId), eq(goals.status, "active")))
     .orderBy(asc(goals.title));
@@ -31,11 +36,17 @@ export async function listActiveGoalProgress({ db, userId }: UserScope, week: We
       .groupBy(activities.goalId),
   ]);
 
-  return active.map((goal) => {
+  return active.map(({ startedAt, ...goal }) => {
     const last = latest.find((row) => row.goalId === goal.id);
     const thisWeek = weekly.find((row) => row.goalId === goal.id);
+    const idle = {
+      status: "active",
+      lastActivityOn: last?.occurredOn ?? null,
+      startedOn: startedAt ? todayInTimeZone(timeZone, startedAt) : null,
+    };
     return {
       ...goal,
+      stalledDays: isStalled(idle, today) ? daysWithoutActivity(idle, today) : null,
       latestActivity: last ? { type: last.type, description: last.description, occurredOn: last.occurredOn } : null,
       weekActivityCount: thisWeek?.count ?? 0,
       weekMinutes: thisWeek?.minutes ?? 0,
@@ -67,4 +78,15 @@ export async function getWeekSummary({ db, userId }: UserScope, week: Week): Pro
     untimedCount: activityCount - rows.reduce((sum, row) => sum + row.timedCount, 0),
     days,
   };
+}
+
+/** Activity per day between two dates, for the calendar. Days with nothing are left out. */
+export async function listCalendarDays({ db, userId }: UserScope, range: { start: string; end: string }) {
+  return db.select({
+    date: activities.occurredOn,
+    count: sql<number>`count(*)::int`,
+    minutes: sql<number>`coalesce(sum(${activities.minutes}), 0)::int`,
+  }).from(activities)
+    .where(and(eq(activities.userId, userId), between(activities.occurredOn, range.start, range.end)))
+    .groupBy(activities.occurredOn);
 }

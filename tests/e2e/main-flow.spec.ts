@@ -48,7 +48,7 @@ test("the main user flow works from topic to completed goal", async ({ page }, i
   await build.getByLabel("Minutes (optional)").fill("90");
   await build.getByLabel("Project", { exact: true }).selectOption("new");
   await build.getByLabel("Project title").fill(projectTitle);
-  await build.getByLabel("Repository URL").fill("https://github.com/owner/signup-form");
+  await build.getByLabel("Repository URL").fill("https://codeberg.org/owner/signup-form");
 
   // 6. Save and see it on the goal page and the dashboard.
   await page.getByRole("button", { name: "Save log" }).click();

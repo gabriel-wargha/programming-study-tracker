@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
+import { calendarStart } from "@/features/dashboard/calendar";
+import { ActivityCalendar } from "@/features/dashboard/components/activity-calendar";
 import { ActiveGoalProgress } from "@/features/dashboard/components/active-goal-progress";
 import { RecentProjects } from "@/features/dashboard/components/recent-projects";
 import { WeekSummaryPanel } from "@/features/dashboard/components/week-summary";
-import { getWeekSummary, listActiveGoalProgress } from "@/features/dashboard/queries";
+import { getWeekSummary, listActiveGoalProgress, listCalendarDays } from "@/features/dashboard/queries";
 import { getActiveGoalLimit } from "@/features/goals/queries";
 import { listProjects } from "@/features/projects/queries";
 import { requireScope } from "@/lib/auth/scope";
@@ -13,9 +15,11 @@ export const metadata: Metadata = { title: "Dashboard · Programming Study Track
 
 export default async function DashboardPage() {
   const scope = await requireScope();
-  const { today, week } = await getOwnerCalendar();
-  const [goals, summary, activeGoalLimit, projects] = await Promise.all([
-    listActiveGoalProgress(scope, week), getWeekSummary(scope, week), getActiveGoalLimit(scope), listProjects(scope, { limit: 4 }),
+  const calendar = await getOwnerCalendar();
+  const { today, week } = calendar;
+  const [goals, summary, activeGoalLimit, projects, calendarDays] = await Promise.all([
+    listActiveGoalProgress(scope, calendar), getWeekSummary(scope, week), getActiveGoalLimit(scope), listProjects(scope, { limit: 4 }),
+    listCalendarDays(scope, { start: calendarStart(today), end: today }),
   ]);
 
   return (
@@ -27,6 +31,7 @@ export default async function DashboardPage() {
           <ActiveGoalProgress goals={goals} activeGoalLimit={activeGoalLimit} />
           <RecentProjects projects={projects} />
         </div>
+        <ActivityCalendar days={calendarDays} today={today} />
       </div>
     </>
   );

@@ -22,7 +22,7 @@ let aliceActivityId: string;
 let bobGoalId: string;
 
 const project = { title: "Form lab", repoUrl: "https://github.com/alice/form-lab", liveUrl: null, description: null };
-const edit = { occurredOn: "2026-11-02", type: "reading" as const, description: "Changed", minutes: 5, projectId: null };
+const edit = { occurredOn: "2026-11-02", type: "reading" as const, description: "Changed", minutes: 5, projectId: null, resourceId: null };
 
 function expectOk<T>(result: { ok: true; data: T } | { ok: false; error: string }): T {
   if (!result.ok) throw new Error(result.error);
@@ -77,7 +77,7 @@ describe("one user cannot read another user's projects or activities", () => {
     ]);
     expect(await listGoalActivities(alice, aliceGoalId)).toEqual([{
       id: aliceActivityId, type: "project", description: "Built the form", minutes: 60, occurredOn: "2026-11-03",
-      project: { id: aliceProjectId, title: "Form lab" },
+      project: { id: aliceProjectId, title: "Form lab" }, resource: null,
     }]);
   });
 
@@ -140,7 +140,7 @@ describe("logging activities", () => {
       projectId: "new",
       newProject: { title: "Dashboard", repoUrl: "https://gitlab.com/alice/dashboard", liveUrl: "", description: "" },
     }));
-    expect(result).toEqual({ ok: true, data: { goalId: aliceGoalId, count: 2 } });
+    expect(result).toMatchObject({ ok: true, data: { goalId: aliceGoalId, count: 2, newProjectId: expect.any(String) } });
 
     const logged = await listGoalActivities(alice, aliceGoalId);
     const dashboard = (await listProjectOptions(alice)).find((option) => option.title === "Dashboard");
@@ -169,7 +169,7 @@ describe("logging activities", () => {
   test("editing can change the type, time, date, and project link", async () => {
     expectOk(await updateActivity(alice, aliceActivityId, edit));
     expect(await listGoalActivities(alice, aliceGoalId)).toEqual([{
-      id: aliceActivityId, type: "reading", description: "Changed", minutes: 5, occurredOn: "2026-11-02", project: null,
+      id: aliceActivityId, type: "reading", description: "Changed", minutes: 5, occurredOn: "2026-11-02", project: null, resource: null,
     }]);
   });
 });

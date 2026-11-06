@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const devUrl = "http://127.0.0.1:3100";
 const productionUrl = "http://127.0.0.1:3101";
 // Browser tests use their own local database, separate from your dev data.
-const e2eEnv = { LOCAL_OWNER_MODE: "1", PGLITE_DATA_DIR: ".data/e2e" };
+const e2eEnv = { LOCAL_OWNER_MODE: "1", PGLITE_DATA_DIR: ".data/e2e", NEXT_E2E_DIST_DIR: ".next-e2e" };
 
 export default defineConfig({
   testDir: "./tests/e2e",

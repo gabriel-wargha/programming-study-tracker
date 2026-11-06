@@ -31,6 +31,10 @@ test("the owner manages a topic and a goal from creation to archive", async ({ p
   await page.getByRole("link", { name: "Add a goal to this topic" }).click();
   await expect(page).toHaveURL(/\/goals\/new\?topic=/);
   await expect(page.getByLabel("Topic", { exact: true })).toHaveValue(/.+/);
+  // A failed validation keeps the chosen topic, in the browser as well as in state.
+  await page.getByRole("button", { name: "Create goal" }).click();
+  await expect(page.getByLabel("Goal title")).toHaveAccessibleDescription("Enter a goal title.");
+  await expect(page.getByLabel("Topic", { exact: true })).toHaveValue(/.+/);
   await page.getByLabel("Goal title").fill(goalTitle);
   await page.getByLabel("Definition of done").fill("A form whose fields are inferred from a schema.");
   await page.getByLabel("Starting status").selectOption("active");

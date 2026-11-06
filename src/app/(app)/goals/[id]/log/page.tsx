@@ -6,6 +6,7 @@ import { logActivitiesAction } from "@/features/activities/actions";
 import { ActivityLogForm } from "@/features/activities/components/activity-log-form";
 import { getGoal } from "@/features/goals/queries";
 import { listProjectOptions } from "@/features/projects/queries";
+import { listResourceOptions } from "@/features/resources/queries";
 import { requireScope } from "@/lib/auth/scope";
 
 export const metadata: Metadata = { title: "Log this week · Programming Study Tracker" };
@@ -15,7 +16,9 @@ export default async function LogGoalPage({ params }: PageProps<"/goals/[id]/log
   const scope = await requireScope();
   const goal = await getGoal(scope, id);
   if (!goal) notFound();
-  const projects = goal.status === "active" ? await listProjectOptions(scope) : [];
+  const [projects, resources] = goal.status === "active"
+    ? await Promise.all([listProjectOptions(scope), listResourceOptions(scope, goal.topicId)])
+    : [[], []];
 
   return (
     <div className="max-w-3xl">
@@ -26,7 +29,7 @@ export default async function LogGoalPage({ params }: PageProps<"/goals/[id]/log
       />
       {goal.status === "active" ? (
         <section aria-label="Log form" className="rounded-lg border bg-card p-5 sm:p-6">
-          <ActivityLogForm action={logActivitiesAction} goalId={goal.id} projects={projects} />
+          <ActivityLogForm action={logActivitiesAction} goalId={goal.id} projects={projects} resources={resources} />
         </section>
       ) : (
         <div role="status">

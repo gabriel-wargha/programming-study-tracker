@@ -1,0 +1,2 @@
+ALTER TABLE "blockers" DROP CONSTRAINT "blockers_solved_needs_solution_check";--> statement-breakpoint
+ALTER TABLE "blockers" ADD CONSTRAINT "blockers_solved_needs_solution_check" CHECK ("blockers"."status" <> 'solved' or ("blockers"."solution" is not null and "blockers"."solution" ~ '[^[:space:]]'));

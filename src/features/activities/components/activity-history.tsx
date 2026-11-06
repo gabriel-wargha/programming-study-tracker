@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Pencil } from "lucide-react";
+import { ExternalLink } from "@/components/external-link";
 import { EmptyState } from "@/components/page-header";
 import { ActivityTypeTag } from "@/features/activities/components/activity-type-tag";
 import { ActivityEditForm } from "@/features/activities/components/activity-edit-form";
@@ -7,6 +8,7 @@ import { DeleteActivityForm } from "@/features/activities/components/delete-acti
 import { activityTypeLabels, type ActivityField, type ActivityItem } from "@/features/activities/schemas";
 import { groupActivitiesByWeek } from "@/features/activities/weekly-history";
 import type { ProjectOption } from "@/features/projects/schemas";
+import type { ResourceOption } from "@/features/resources/schemas";
 import { formatCalendarDate } from "@/lib/dates/format-calendar-date";
 import { formatMinutes } from "@/lib/dates/format-minutes";
 import { formatWeekRange } from "@/lib/dates/weeks";
@@ -14,9 +16,10 @@ import type { FormAction } from "@/lib/forms/action-state";
 
 const activityCount = (count: number) => (count === 1 ? "1 activity" : `${count} activities`);
 
-export function ActivityHistory({ activities, projects, updateAction, deleteAction }: {
+export function ActivityHistory({ activities, projects, resources = [], updateAction, deleteAction }: {
   activities: ActivityItem[];
   projects: ProjectOption[];
+  resources?: ResourceOption[];
   updateAction: FormAction<ActivityField, { id: string }>;
   deleteAction: FormAction<"id", { id: string }>;
 }) {
@@ -60,12 +63,19 @@ export function ActivityHistory({ activities, projects, updateAction, deleteActi
                       {activity.project && (
                         <p className="text-sm text-muted-foreground">Project: <Link href={`/projects/${activity.project.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{activity.project.title}</Link></p>
                       )}
+                      {activity.resource && (
+                        <p className="text-sm text-muted-foreground">
+                          Resource: {activity.resource.url
+                            ? <ExternalLink href={activity.resource.url}>{activity.resource.title}</ExternalLink>
+                            : <span className="font-medium text-foreground">{activity.resource.title}</span>}
+                        </p>
+                      )}
                       <div className="flex flex-wrap items-start gap-2 pt-1">
                         <details className="group w-full sm:w-auto sm:flex-1 open:rounded-lg open:border open:p-4">
                           <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground group-open:mb-4 group-open:text-foreground [&::-webkit-details-marker]:hidden">
                             <Pencil aria-hidden="true" className="size-3.5" />Edit<span className="sr-only">: {name}</span>
                           </summary>
-                          <ActivityEditForm action={updateAction} activity={activity} projects={projects} />
+                          <ActivityEditForm action={updateAction} activity={activity} projects={projects} resources={resources} />
                         </details>
                         <DeleteActivityForm action={deleteAction} activityId={activity.id} activityName={name} />
                       </div>

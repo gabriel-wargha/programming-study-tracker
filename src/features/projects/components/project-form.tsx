@@ -10,10 +10,11 @@ import {
 import type { FormAction, FormResult } from "@/lib/forms/action-state";
 import { fieldErrors } from "@/lib/forms/field-errors";
 
-type Result = FormResult<ProjectField, { id: string }>;
+type Data = { id: string; githubWarning?: string };
+type Result = FormResult<ProjectField, Data>;
 
 export function ProjectForm({ action, initialValues }: {
-  action: FormAction<ProjectField, { id: string }>;
+  action: FormAction<ProjectField, Data>;
   initialValues?: ProjectFormValues;
 }) {
   const id = useId();
@@ -62,6 +63,7 @@ export function ProjectForm({ action, initialValues }: {
         </div>
       </fieldset>
       <FormFeedback state={state} success="Project saved." />
+      {state?.ok && state.data.githubWarning && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">{state.data.githubWarning}</p>}
       <Button type="submit" disabled={pending} aria-busy={pending}>{pending ? "Saving…" : editing ? "Save project" : "Create project"}</Button>
     </form>
   );

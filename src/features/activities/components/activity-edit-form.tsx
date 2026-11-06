@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useState } from "react";
 import Link from "next/link";
+import { keepValuesOnReset } from "@/lib/forms/keep-values-on-reset";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, inputClassName } from "@/components/ui/input";
 import { FieldError, FormFeedback } from "@/components/form-feedback";
@@ -10,16 +11,18 @@ import {
   type ActivityField, type ActivityItem,
 } from "@/features/activities/schemas";
 import type { ProjectOption } from "@/features/projects/schemas";
+import type { ResourceOption } from "@/features/resources/schemas";
 import { useLocalToday } from "@/lib/dates/use-local-today";
 import type { FormAction, FormResult } from "@/lib/forms/action-state";
 import { fieldErrors } from "@/lib/forms/field-errors";
 
 type Result = FormResult<ActivityField, { id: string }>;
 
-export function ActivityEditForm({ action, activity, projects }: {
+export function ActivityEditForm({ action, activity, projects, resources = [] }: {
   action: FormAction<ActivityField, { id: string }>;
   activity: ActivityItem;
   projects: ProjectOption[];
+  resources?: ResourceOption[];
 }) {
   const id = useId();
   const today = useLocalToday();
@@ -29,6 +32,7 @@ export function ActivityEditForm({ action, activity, projects }: {
     description: activity.description,
     minutes: activity.minutes?.toString() ?? "",
     projectId: activity.project?.id ?? "",
+    resourceId: activity.resource?.id ?? "",
   });
   const update = (field: keyof typeof values, value: string) => setValues((previous) => ({ ...previous, [field]: value }));
   const [state, formAction, pending] = useActionState<Result | null, FormData>(async (previous, formData) => {
@@ -46,7 +50,7 @@ export function ActivityEditForm({ action, activity, projects }: {
     ? [activity.project, ...projects] : projects;
 
   return (
-    <form action={formAction} noValidate aria-label="Edit activity" className="space-y-4">
+    <form action={formAction} onReset={keepValuesOnReset} noValidate aria-label="Edit activity" className="space-y-4">
       <input type="hidden" name="id" value={activity.id} />
       <fieldset disabled={pending} className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -88,6 +92,20 @@ export function ActivityEditForm({ action, activity, projects }: {
             </select>
             <FieldError id={`${id}-projectId-error`} errors={errors?.projectId} />
             {!projectOptions.length && <p className="mt-2 text-sm text-muted-foreground"><Link href="/projects" className="text-primary underline underline-offset-4">Add a project</Link> first.</p>}
+          </div>
+        )}
+        {(resources.length > 0 || activity.resource) && (
+          <div className="sm:col-span-2">
+            <label htmlFor={`${id}-resource`} className="text-sm font-medium">Resource <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <select id={`${id}-resource`} name="resourceId" value={values.resourceId} onChange={(event) => update("resourceId", event.target.value)}
+              className={`${inputClassName} mt-2 min-h-11`} aria-invalid={Boolean(errors?.resourceId)} aria-describedby={describedBy("resourceId")}>
+              <option value="">No resource</option>
+              {resources.map((resource) => <option key={resource.id} value={resource.id}>{resource.title}</option>)}
+              {activity.resource && !resources.some((resource) => resource.id === activity.resource?.id) && (
+                <option value={activity.resource.id}>{activity.resource.title}</option>
+              )}
+            </select>
+            <FieldError id={`${id}-resourceId-error`} errors={errors?.resourceId} />
           </div>
         )}
       </fieldset>

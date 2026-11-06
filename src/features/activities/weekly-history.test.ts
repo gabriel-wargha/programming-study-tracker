@@ -4,7 +4,7 @@ import { groupActivitiesByWeek } from "@/features/activities/weekly-history";
 
 let next = 0;
 const activity = (occurredOn: string, minutes: number | null): ActivityItem => ({
-  id: `activity-${(next += 1)}`, type: "reading", description: "Read the docs", minutes, occurredOn, project: null,
+  id: `activity-${(next += 1)}`, type: "reading", description: "Read the docs", minutes, occurredOn, project: null, resource: null,
 });
 
 test("activities are grouped into Monday-to-Sunday weeks, newest first", () => {

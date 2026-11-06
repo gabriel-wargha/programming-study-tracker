@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useState } from "react";
 import { fieldErrors } from "@/lib/forms/field-errors";
+import { keepValuesOnReset } from "@/lib/forms/keep-values-on-reset";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, inputClassName } from "@/components/ui/input";
 import { ActiveGoalList, FieldError, FormFeedback } from "@/components/form-feedback";
@@ -41,7 +42,7 @@ export function GoalForm({ action, topics, initialValues, activeGoals, activeGoa
   const disabled = pending || topics.length === 0;
 
   return (
-    <form action={formAction} noValidate aria-label={editing ? "Edit goal" : "Create goal"} className="space-y-5">
+    <form action={formAction} onReset={keepValuesOnReset} noValidate aria-label={editing ? "Edit goal" : "Create goal"} className="space-y-5">
       {editing && <input type="hidden" name="id" value={initialValues?.id} />}
       {!topics.length && <p role="status" className="rounded-md border p-4 text-sm text-muted-foreground">Create a topic before adding a goal.</p>}
       <fieldset disabled={disabled} className="space-y-5">

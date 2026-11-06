@@ -539,31 +539,39 @@ No cloud account or Docker is needed.
 
 ### Phase 5: Progress and consistency
 
-- [ ] Create `confidence_ratings` and `goal_activity_summary`.
-- [ ] Add confidence ratings and history to the topic page.
-- [ ] Prompt for a rating when a goal is completed.
-- [ ] Build `/review`, with support for earlier weeks.
-- [ ] Add stalled goal alerts to the dashboard and goal page.
-- [ ] Add the activity calendar to the dashboard.
-- [ ] Add tests for stalled goal rules and weekly totals.
+- [x] Create `confidence_ratings` and `goal_activity_summary`.
+- [x] Add confidence ratings and history to the topic page.
+- [x] Prompt for a rating when a goal is completed.
+- [x] Build `/review`, with support for earlier weeks.
+- [x] Add stalled goal alerts to the dashboard and goal page.
+- [x] Add the activity calendar to the dashboard.
+- [x] Add tests for stalled goal rules and weekly totals.
 
 **Done when:** The owner can see confidence changes, review any week, spot stalled goals, and view their study days.
 
+**Verified November 5, 2026:** See the Phase 6 note; both phases were built and checked together. Ratings are append-only, stalled goals use the 14-day rule from section 5, `/review` supports earlier weeks and never shows future ones, and the calendar labels every day in text. `goal_activity_summary` also returns `user_id`, so queries can filter by owner.
+
 ### Phase 6: GitHub and learning support
 
-- [ ] Add the GitHub project columns.
-- [ ] Add a tested GitHub URL parser and server-side API client.
-- [ ] Sync repository details after saving, and add **Refresh**.
-- [ ] Create `resources` and `activities.resource_id`.
-- [ ] Add the resource library to topic pages.
-- [ ] Let an activity link to a resource.
-- [ ] Create `blockers` and add them to goal pages.
-- [ ] Include blockers in the weekly review.
-- [ ] Create `topic_prerequisites`.
-- [ ] Build `/roadmap` with prerequisite warnings and loop prevention.
-- [ ] Add unit, ownership, and component tests.
+- [x] Add the GitHub project columns.
+- [x] Add a tested GitHub URL parser and server-side API client.
+- [x] Sync repository details after saving, and add **Refresh**.
+- [x] Create `resources` and `activities.resource_id`.
+- [x] Add the resource library to topic pages.
+- [x] Let an activity link to a resource.
+- [x] Create `blockers` and add them to goal pages.
+- [x] Include blockers in the weekly review.
+- [x] Create `topic_prerequisites`.
+- [x] Build `/roadmap` with prerequisite warnings and loop prevention.
+- [x] Add unit, ownership, and component tests.
 
 **Done when:** Public GitHub repositories show their details, and the owner can manage resources, blockers, and topic prerequisites.
+
+**Verified November 5, 2026:** Lint, type checking, 268 unit/component/database tests, the production build, and 27 Playwright tests pass (the More menu test runs only at phone width, so its desktop run is skipped). The GitHub parser and client are tested with a stubbed `fetch`: only `api.github.com` receives requests, redirects to other hosts are refused, and missing, private, rate-limited, and unreachable repositories each get a clear result. Database and ownership tests cover resources (including the same-topic link rule), blockers (a solution is required, and `solved_at` belongs to the trigger), and prerequisites (self-links and loops are rejected). Browser flows at desktop and mobile widths cover resources, the roadmap, blockers, the weekly review, and a GitHub project that saves even when its details can't be read. Screens were checked visually at both widths.
+
+**Not verified:** A successful sync against the live GitHub API. The stubbed tests cover it, but the browser test only exercises the failure path, to avoid using up GitHub's request limit. Try it with a real public repository. Concurrent prerequisite inserts are checked for correctness only, as PGlite has one connection; test them on Neon in Phase 8.
+
+**Left out on purpose:** Blockers can be added, solved, and reopened, but not edited or deleted. The plan doesn't require those, and projects still can't be deleted.
 
 ### Phase 7: Reviews and portfolio
 
@@ -584,7 +592,7 @@ No cloud account or Docker is needed.
 - [ ] Complete the Phase 8 owner setup.
 - [ ] Install `@neon/auth`, `@neondatabase/serverless`, and `@neon/config`, and add `neon.ts` with `auth: true`.
 - [ ] Add the Neon driver to `src/db/client.ts` when `DATABASE_URL` is set. Use a driver that supports transactions.
-- [ ] Apply all migrations to a Neon development branch with `DATABASE_URL_UNPOOLED`, then run the database tests against it.
+- [ ] Apply all migrations to a Neon development branch with `DATABASE_URL_UNPOOLED`, then run the database tests against it, including concurrent goal activations and prerequisite inserts.
 - [ ] Add the Neon Auth server instance, the `/api/auth/[...path]` handler, and the browser auth client.
 - [ ] Add `src/proxy.ts` with `auth.middleware()` to redirect signed-out visitors, with `/login` and `/u/[slug]` public.
 - [ ] Build `/login` with GitHub sign-in, and sign-out.
@@ -656,6 +664,11 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-05 | Projects can be created and edited but not deleted in Phase 3 | The plan does not define project deletion, and activities reference projects |
 | 2026-11-05 | The browser reports its time zone in a `study_time_zone` cookie; the server uses it (validated, UTC fallback) to work out the owner's "today" and current week | The dashboard, weekly review, and stalled alerts need the owner's week; the cookie holds no secret and an invalid value only falls back to UTC |
 | 2026-11-05 | Redesign the UI as a light code-editor theme: IBM Plex Sans and Mono via `next/font`, sidebar nav on desktop and a bottom tab bar on phones, syntax-token colors per activity type, a Mon–Sun week strip on the dashboard, and edit forms folded into disclosures | Owner chose this direction; it replaces the earlier system-font decision now that fonts can be downloaded at build time |
+| 2026-11-05 | Cancel React's automatic form reset with `onReset={keepValuesOnReset}` on forms with dropdowns or radios | After a form action React resets the form, and a controlled `<select>` then shows its first option while its state keeps the old choice, so the next save could send the wrong value |
+| 2026-11-05 | Show four main tabs plus a More menu on phones | The app now has seven sections, more than a bottom tab bar can hold |
+| 2026-11-05 | Let Playwright build into `.next-e2e` | Next.js allows one dev server per build folder, so tests can now run while `npm run dev` is open |
+| 2026-11-05 | Add `user_id` to `goal_activity_summary` | Queries must filter every owned read by owner |
+| 2026-11-05 | Check topic ownership before inserting a prerequisite | The primary key excludes `user_id`, so a duplicate error would otherwise reveal another user's rows |
 | 2026-11-05 | Use one `loading.tsx` for the whole app, so unknown IDs return the not-found page with HTTP 200 and `noindex` instead of a 404 status | A loading screen starts streaming before `notFound()` runs; for a private, signed-in app a soft 404 is harmless, and tests check the not-found page instead |
 
 ## 15. Ideas for later

@@ -43,6 +43,41 @@
       "when": 1793889738287,
       "tag": "0005_activity_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793929562655,
+      "tag": "0006_create_confidence_ratings",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793929565161,
+      "tag": "0007_progress_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793930107433,
+      "tag": "0008_learning_support",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793930109693,
+      "tag": "0009_learning_support_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793937822102,
+      "tag": "0010_blockers_require_solution",
+      "breakpoints": true
     }
   ]
 }

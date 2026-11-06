@@ -44,10 +44,10 @@ test("the owner logs a week of work with time and a new project", async ({ page 
   // Earlier runs may have created projects, so choose "Add a new project" explicitly.
   await build.getByLabel("Project", { exact: true }).selectOption("new");
   await build.getByLabel("Project title").fill(projectTitle);
-  await build.getByLabel("Repository URL").fill("http://github.com/owner/action-lab");
+  await build.getByLabel("Repository URL").fill("http://codeberg.org/owner/action-lab");
   await page.getByRole("button", { name: "Save log" }).click();
   await expect(build.getByLabel("Repository URL")).toHaveAccessibleDescription(/starts with https:\/\//);
-  await build.getByLabel("Repository URL").fill("https://github.com/owner/action-lab");
+  await build.getByLabel("Repository URL").fill("https://codeberg.org/owner/action-lab");
   await page.getByRole("button", { name: "Save log" }).click();
 
   // The goal page shows the week with its total.
@@ -68,9 +68,10 @@ test("the owner logs a week of work with time and a new project", async ({ page 
   // The project page links back to the goal.
   await week.getByRole("link", { name: projectTitle }).click();
   await expect(page.getByRole("heading", { level: 1, name: projectTitle })).toBeVisible();
-  const repoLink = page.getByRole("link", { name: /github\.com\/owner\/action-lab/ });
+  const repoLink = page.getByRole("link", { name: /codeberg\.org\/owner\/action-lab/ });
   await expect(repoLink).toHaveAttribute("rel", "noopener noreferrer");
   await expect(page.getByRole("region", { name: "Linked goals" })).toContainText("1 activity · 1 h 30 min recorded");
+  if (info.project.name === "mobile") await page.getByRole("button", { name: "More" }).click();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Projects" }).click();
   await expect(page.getByRole("link", { name: projectTitle })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

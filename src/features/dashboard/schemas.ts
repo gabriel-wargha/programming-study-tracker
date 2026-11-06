@@ -8,6 +8,8 @@ export type DashboardGoal = {
   /** Activities and recorded minutes in the owner's current week. */
   weekActivityCount: number;
   weekMinutes: number;
+  /** Days without activity, shown when the goal is stalled; otherwise null. */
+  stalledDays: number | null;
 };
 
 export type WeekDay = { date: string; activityCount: number; minutes: number };

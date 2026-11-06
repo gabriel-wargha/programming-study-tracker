@@ -19,11 +19,16 @@ function activityFailure<Field extends "occurredOn" | "projectId">(error: unknow
     ok: false, error: "Check the highlighted fields.", fieldErrors: { [field]: [message] } as Partial<Record<Field, string[]>>,
   });
   switch (databaseErrorCode(error)) {
+    case ruleErrorCodes.resourceOutsideTopic:
+      return { ok: false, error: "Choose a resource from this goal's topic." };
     case ruleErrorCodes.goalNotActive:
       return { ok: false, error: "Only active goals can receive new activities." };
     case ruleErrorCodes.futureActivityDate:
       return fieldError("occurredOn" as Field, futureDate);
     case postgresErrorCodes.foreignKeyViolation:
+      if (databaseErrorConstraint(error) === "activities_owned_resource_fkey") {
+        return { ok: false, error: "Choose a resource from this goal's topic." };
+      }
       return databaseErrorConstraint(error) === "activities_owned_project_fkey"
         ? fieldError("projectId" as Field, "Choose one of your projects.")
         : { ok: false, error: "This goal could not be found." };
@@ -39,15 +44,17 @@ function activityFailure<Field extends "occurredOn" | "projectId">(error: unknow
 export async function logActivities(
   scope: UserScope,
   input: LogActivitiesInput,
-): Promise<FormResult<LogField, { goalId: string; count: number }>> {
+): Promise<FormResult<LogField, { goalId: string; count: number; newProjectId?: string }>> {
   try {
-    const count = await scope.db.transaction(async (tx) => {
+    const { count, newProjectId } = await scope.db.transaction(async (tx) => {
       let projectId: string | null = null;
+      let createdId: string | undefined;
       if (input.project?.kind === "existing") projectId = input.project.id;
       if (input.project?.kind === "new") {
         const [project] = await tx.insert(projects).values({ userId: scope.userId, ...input.project.project })
           .returning({ id: projects.id });
         projectId = project.id;
+        createdId = project.id;
       }
       const rows = await tx.insert(activities).values(input.entries.map((entry) => ({
         userId: scope.userId,
@@ -56,9 +63,9 @@ export async function logActivities(
         ...entry,
         projectId: entry.type === "project" ? projectId : null,
       }))).returning({ id: activities.id });
-      return rows.length;
+      return { count: rows.length, newProjectId: createdId };
     });
-    return { ok: true, data: { goalId: input.goalId, count } };
+    return { ok: true, data: { goalId: input.goalId, count, ...(newProjectId ? { newProjectId } : {}) } };
   } catch (error) {
     return activityFailure<"occurredOn" | "projectId">(error);
   }

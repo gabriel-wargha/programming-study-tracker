@@ -30,6 +30,16 @@ test("a goal without a definition of done shows a visible, associated field erro
   expect(action).not.toHaveBeenCalled();
 });
 
+test("a failed validation keeps the chosen topic in the dropdown", async () => {
+  const user = userEvent.setup();
+  const other = { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "SQL" };
+  render(<GoalForm action={saveGoal()} topics={[topic, other]} activeGoals={[]} activeGoalLimit={3} />);
+  await user.selectOptions(screen.getByLabelText("Topic"), "SQL");
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  await screen.findByText("Enter a goal title.");
+  expect(screen.getByLabelText("Topic")).toHaveValue(other.id);
+});
+
 test("a full active limit still permits a planned goal and lists current active goals", async () => {
   const user = userEvent.setup();
   const action = saveGoal();

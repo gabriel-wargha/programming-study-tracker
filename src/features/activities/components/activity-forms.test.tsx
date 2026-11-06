@@ -121,9 +121,9 @@ test("deleting an activity asks for confirmation", async () => {
 
 test("the history groups activities by week with time totals", () => {
   const activities: ActivityItem[] = [
-    { id: "a1", type: "course", description: "Module 3", minutes: 45, occurredOn: "2026-11-04", project: null },
-    { id: "a2", type: "project", description: "Dashboard", minutes: null, occurredOn: "2026-11-02", project },
-    { id: "a3", type: "reading", description: "Docs", minutes: 90, occurredOn: "2026-10-30", project: null },
+    { id: "a1", type: "course", description: "Module 3", minutes: 45, occurredOn: "2026-11-04", project: null, resource: null },
+    { id: "a2", type: "project", description: "Dashboard", minutes: null, occurredOn: "2026-11-02", project, resource: null },
+    { id: "a3", type: "reading", description: "Docs", minutes: 90, occurredOn: "2026-10-30", project: null, resource: null },
   ];
   render(<ActivityHistory activities={activities} projects={[project]} updateAction={vi.fn()} deleteAction={vi.fn()} />);
   const thisWeek = screen.getByRole("region", { name: "Week of Nov 2 – 8, 2026" });

@@ -32,9 +32,9 @@ const projectFieldNames = { title: "projectTitle", repoUrl: "projectRepoUrl", li
 export type LogField =
   | "goalId" | "occurredOn" | "types" | "projectId"
   | (typeof projectFieldNames)[keyof typeof projectFieldNames]
-  | `description-${ActivityType}` | `minutes-${ActivityType}`;
+  | `description-${ActivityType}` | `minutes-${ActivityType}` | `resource-${ActivityType}`;
 
-export type ActivityEntry = { type: ActivityType; description: string; minutes: number | null };
+export type ActivityEntry = { type: ActivityType; description: string; minutes: number | null; resourceId: string | null };
 export type ProjectLink = { kind: "existing"; id: string } | { kind: "new"; project: ProjectInput };
 
 const text = z.string().catch("");
@@ -46,7 +46,7 @@ const text = z.string().catch("");
 export const logActivitiesSchema = z.object({
   goalId: z.uuid("Choose a valid goal."),
   occurredOn: activityDateSchema,
-  entries: z.array(z.object({ type: activityTypeSchema, description: text, minutes: text })).max(activityTypes.length),
+  entries: z.array(z.object({ type: activityTypeSchema, description: text, minutes: text, resource: text.optional() })).max(activityTypes.length),
   projectId: text,
   newProject: z.object({ title: text, repoUrl: text, liveUrl: text, description: text }),
 }).strict().transform((input, ctx) => {
@@ -61,8 +61,10 @@ export const logActivitiesSchema = z.object({
     const minutes = activityMinutesSchema.safeParse(entry.minutes);
     if (!description.success) issue(`description-${entry.type}`, description.error.issues[0].message);
     if (!minutes.success) issue(`minutes-${entry.type}`, minutes.error.issues[0].message);
+    const resourceId = entry.resource || null;
+    if (resourceId && !z.uuid().safeParse(resourceId).success) issue(`resource-${entry.type}`, "Choose one of this topic's resources.");
     if (description.success && minutes.success) {
-      entries.push({ type: entry.type, description: description.data, minutes: minutes.data });
+      entries.push({ type: entry.type, description: description.data, minutes: minutes.data, resourceId });
     }
   }
 
@@ -94,7 +96,7 @@ export function readLogForm(formData: FormData) {
     goalId: formData.get("goalId"),
     occurredOn: formData.get("occurredOn"),
     entries: formData.getAll("types").map((type) => ({
-      type, description: value(`description-${type}`), minutes: value(`minutes-${type}`),
+      type, description: value(`description-${type}`), minutes: value(`minutes-${type}`), resource: value(`resource-${type}`),
     })),
     projectId: value("projectId"),
     newProject: {
@@ -111,13 +113,15 @@ export const editActivitySchema = z.object({
   description: activityDescriptionSchema,
   minutes: activityMinutesSchema,
   projectId: z.string(),
+  resourceId: z.union([z.literal(""), z.uuid("Choose one of this topic's resources.")]).default(""),
 }).strict().transform((input, ctx) => {
-  if (input.type !== "project") return { ...input, projectId: null };
+  const resourceId = input.resourceId || null;
+  if (input.type !== "project") return { ...input, resourceId, projectId: null };
   if (!z.uuid().safeParse(input.projectId).success) {
     ctx.addIssue({ code: "custom", path: ["projectId"], message: "Choose a project." });
     return z.NEVER;
   }
-  return input;
+  return { ...input, resourceId };
 });
 
 export type EditActivityInput = Omit<z.output<typeof editActivitySchema>, "id">;
@@ -131,6 +135,7 @@ export function readActivityForm(formData: FormData) {
     description: formData.get("description") ?? "",
     minutes: formData.get("minutes") ?? "",
     projectId: formData.get("projectId") ?? "",
+    resourceId: formData.get("resourceId") ?? "",
   };
 }
 
@@ -143,4 +148,5 @@ export type ActivityItem = {
   minutes: number | null;
   occurredOn: string;
   project: { id: string; title: string } | null;
+  resource: { id: string; title: string; url: string | null } | null;
 };

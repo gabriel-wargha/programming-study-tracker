@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, desc, eq, type SQL } from "drizzle-orm";
-import { activities, projects } from "@/db/schema";
+import { activities, projects, resources } from "@/db/schema";
 import type { ActivityItem } from "@/features/activities/schemas";
 import type { UserScope } from "@/lib/auth/scope";
 import { isUuid } from "@/lib/ids";
@@ -16,13 +16,18 @@ async function selectActivities({ db, userId }: UserScope, filter?: SQL): Promis
     occurredOn: activities.occurredOn,
     projectId: projects.id,
     projectTitle: projects.title,
+    resourceId: resources.id,
+    resourceTitle: resources.title,
+    resourceUrl: resources.url,
   }).from(activities)
     .leftJoin(projects, and(eq(projects.id, activities.projectId), eq(projects.userId, activities.userId)))
+    .leftJoin(resources, and(eq(resources.id, activities.resourceId), eq(resources.userId, activities.userId)))
     .where(and(eq(activities.userId, userId), filter))
     .orderBy(desc(activities.occurredOn), desc(activities.createdAt));
-  return rows.map(({ projectId, projectTitle, ...activity }) => ({
+  return rows.map(({ projectId, projectTitle, resourceId, resourceTitle, resourceUrl, ...activity }) => ({
     ...activity,
     project: projectId && projectTitle ? { id: projectId, title: projectTitle } : null,
+    resource: resourceId && resourceTitle ? { id: resourceId, title: resourceTitle, url: resourceUrl } : null,
   }));
 }
 

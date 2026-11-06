@@ -17,6 +17,12 @@ function summaries({ db, userId }: UserScope, filter?: SQL) {
     activityCount: sql<number>`count(${activities.id})::int`,
     goalCount: sql<number>`${countDistinct(activities.goalId)}::int`,
     lastActivityOn: sql<string | null>`max(${activities.occurredOn})::text`,
+    githubFullName: projects.githubFullName,
+    githubDescription: projects.githubDescription,
+    githubPrimaryLanguage: projects.githubPrimaryLanguage,
+    githubLanguages: projects.githubLanguages,
+    githubLastCommitAt: projects.githubLastCommitAt,
+    githubSyncedAt: projects.githubSyncedAt,
   }).from(projects)
     .leftJoin(activities, and(eq(activities.projectId, projects.id), eq(activities.userId, projects.userId)))
     .where(and(eq(projects.userId, userId), filter))

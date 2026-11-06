@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useId, useState, type ReactNode } from "react";
 import { z } from "zod";
+import { keepValuesOnReset } from "@/lib/forms/keep-values-on-reset";
 import { Button } from "@/components/ui/button";
 import { inputClassName } from "@/components/ui/input";
 import { FieldError, FormFeedback } from "@/components/form-feedback";
@@ -9,13 +10,15 @@ import { assessGoalTransition, goalStatusLabels, goalTransitions } from "@/featu
 import { changeGoalStatusSchema, type GoalStatus, type GoalStatusField } from "@/features/goals/schemas";
 import type { ActiveGoalLink, FormAction, FormResult } from "@/lib/forms/action-state";
 
-export function GoalStatusForm({ action, goalId, currentStatus, activeGoals, activeGoalLimit, topicArchived = false }: {
+export function GoalStatusForm({ action, goalId, currentStatus, activeGoals, activeGoalLimit, topicArchived = false, completionPrompt }: {
   action: FormAction<GoalStatusField, { status: GoalStatus }>;
   goalId: string;
   currentStatus: GoalStatus;
   activeGoals: ActiveGoalLink[];
   activeGoalLimit: number;
   topicArchived?: boolean;
+  /** Shown right after this form completes the goal. */
+  completionPrompt?: ReactNode;
 }) {
   const id = useId();
   const [status, setStatus] = useState("");
@@ -33,10 +36,12 @@ export function GoalStatusForm({ action, goalId, currentStatus, activeGoals, act
     return result;
   }, null);
   const errors = state?.ok === false ? state.fieldErrors : undefined;
+  const justCompleted = state?.ok === true && state.data.status === "completed";
   if (currentStatus === "archived") return <p className="text-sm text-muted-foreground">This goal is archived.</p>;
 
   return (
-    <form action={formAction} noValidate aria-label="Change goal status" className="space-y-4">
+    <>
+    <form action={formAction} onReset={keepValuesOnReset} noValidate aria-label="Change goal status" className="space-y-4">
       <input type="hidden" name="id" value={goalId} />
       <fieldset disabled={pending} className="space-y-4">
         <div>
@@ -62,5 +67,7 @@ export function GoalStatusForm({ action, goalId, currentStatus, activeGoals, act
         {pending ? "Updating…" : status === "completed" ? "Complete goal" : "Update status"}
       </Button>
     </form>
+    {justCompleted && completionPrompt}
+    </>
   );
 }

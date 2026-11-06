@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useId, useState } from "react";
+import { keepValuesOnReset } from "@/lib/forms/keep-values-on-reset";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, inputClassName } from "@/components/ui/input";
 import { FieldError, FormFeedback } from "@/components/form-feedback";
@@ -10,22 +11,24 @@ import {
 } from "@/features/activities/schemas";
 import { activityTypeColors } from "@/features/activities/components/activity-type-tag";
 import type { ProjectOption } from "@/features/projects/schemas";
+import type { ResourceOption } from "@/features/resources/schemas";
 import { cn } from "@/lib/utils";
 import { useLocalToday } from "@/lib/dates/use-local-today";
 import type { FormAction, FormResult } from "@/lib/forms/action-state";
 import { fieldErrors } from "@/lib/forms/field-errors";
 
-type Result = FormResult<LogField, { goalId: string; count: number }>;
-type EntryValues = { description: string; minutes: string };
+type Result = FormResult<LogField, { goalId: string; count: number; newProjectId?: string }>;
+type EntryValues = { description: string; minutes: string; resource: string };
 type NewProjectValues = { projectTitle: string; projectRepoUrl: string; projectLiveUrl: string; projectDescription: string };
 
-const emptyEntries = Object.fromEntries(activityTypes.map((type) => [type, { description: "", minutes: "" }])) as Record<ActivityType, EntryValues>;
+const emptyEntries = Object.fromEntries(activityTypes.map((type) => [type, { description: "", minutes: "", resource: "" }])) as Record<ActivityType, EntryValues>;
 const futureDate = "The date can't be in the future.";
 
-export function ActivityLogForm({ action, goalId, projects }: {
-  action: FormAction<LogField, { goalId: string; count: number }>;
+export function ActivityLogForm({ action, goalId, projects, resources = [] }: {
+  action: FormAction<LogField, { goalId: string; count: number; newProjectId?: string }>;
   goalId: string;
   projects: ProjectOption[];
+  resources?: ResourceOption[];
 }) {
   const id = useId();
   const today = useLocalToday();
@@ -57,7 +60,7 @@ export function ActivityLogForm({ action, goalId, projects }: {
     setNewProject((previous) => ({ ...previous, [field]: value }));
 
   return (
-    <form action={formAction} noValidate aria-label="Log activities" className="space-y-6">
+    <form action={formAction} onReset={keepValuesOnReset} noValidate aria-label="Log activities" className="space-y-6">
       <input type="hidden" name="goalId" value={goalId} />
       <fieldset disabled={pending} className="space-y-6">
         <div>
@@ -79,6 +82,7 @@ export function ActivityLogForm({ action, goalId, projects }: {
               const labelId = `${id}-${type}-label`;
               const descriptionField = `description-${type}` as const;
               const minutesField = `minutes-${type}` as const;
+              const resourceField = `resource-${type}` as const;
               return (
                 <li key={type} className={cn("rounded-lg border bg-card px-4 transition-colors", checked ? "border-primary/50 py-3 shadow-[0_0_0_3px_var(--secondary)]" : "py-1 hover:bg-subtle")}>
                   <div className="flex min-h-11 items-center gap-3">
@@ -105,6 +109,17 @@ export function ActivityLogForm({ action, goalId, projects }: {
                           className="mt-2" aria-invalid={Boolean(errors?.[minutesField])} aria-describedby={describedBy(minutesField)} />
                         <FieldError id={errorId(minutesField)} errors={errors?.[minutesField]} />
                       </div>
+                      {resources.length > 0 && (
+                        <div className="sm:col-span-2">
+                          <label htmlFor={`${id}-${type}-resource`} className="text-sm font-medium">Resource <span className="font-normal text-muted-foreground">(optional)</span></label>
+                          <select id={`${id}-${type}-resource`} name={resourceField} value={entries[type].resource} onChange={(event) => updateEntry(type, "resource", event.target.value)} className={`${inputClassName} mt-2 min-h-11`}
+                            aria-invalid={Boolean(errors?.[resourceField])} aria-describedby={describedBy(resourceField)}>
+                            <option value="">No resource</option>
+                            {resources.map((resource) => <option key={resource.id} value={resource.id}>{resource.title}</option>)}
+                          </select>
+                          <FieldError id={errorId(resourceField)} errors={errors?.[resourceField]} />
+                        </div>
+                      )}
                       {type === "project" && (
                         <ProjectChoice
                           id={id} projects={projects} projectId={projectId} onProjectIdChange={setProjectId}

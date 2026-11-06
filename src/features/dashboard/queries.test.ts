@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { activities } from "@/db/schema";
 import { createTestDatabase } from "@/db/test-database";
-import { getWeekSummary, listActiveGoalProgress } from "@/features/dashboard/queries";
+import { getWeekSummary, listActiveGoalProgress, listCalendarDays } from "@/features/dashboard/queries";
 import { changeGoalStatus, createGoal } from "@/features/goals/mutations";
 import { createProject } from "@/features/projects/mutations";
 import { listProjects } from "@/features/projects/queries";
@@ -15,6 +15,7 @@ let alice: UserScope;
 let bob: UserScope;
 let topicId: string;
 const week = { start: "2026-10-26", end: "2026-11-01" };
+const calendar = { today: "2026-10-30", timeZone: "UTC", week };
 
 function expectOk<T>(result: { ok: true; data: T } | { ok: false; error: string }): T {
   if (!result.ok) throw new Error(result.error);
@@ -46,14 +47,31 @@ test("active goals show their latest activity and this week's progress", async (
   await log("alice", parked, "2026-10-28", 10);
   expectOk(await changeGoalStatus(alice, parked, "planned"));
 
-  expect(await listActiveGoalProgress(alice, week)).toEqual([
+  expect(await listActiveGoalProgress(alice, calendar)).toEqual([
     {
       id: forms, title: "Forms", topicName: "React",
       latestActivity: { type: "reading", description: "Newest", occurredOn: "2026-10-29" },
-      weekActivityCount: 2, weekMinutes: 30,
+      weekActivityCount: 2, weekMinutes: 30, stalledDays: null,
     },
-    { id: hooks, title: "Hooks", topicName: "React", latestActivity: null, weekActivityCount: 0, weekMinutes: 0 },
+    { id: hooks, title: "Hooks", topicName: "React", latestActivity: null, weekActivityCount: 0, weekMinutes: 0, stalledDays: null },
   ]);
+});
+
+test("an active goal is stalled 14 days after its last activity", async () => {
+  const forms = await goal(alice, "Forms");
+  await log("alice", forms, "2026-10-01", 30);
+  const later = { ...calendar, today: "2026-10-15" };
+  expect((await listActiveGoalProgress(alice, later))[0].stalledDays).toBe(14);
+  expect((await listActiveGoalProgress(alice, { ...calendar, today: "2026-10-14" }))[0].stalledDays).toBeNull();
+});
+
+test("the calendar returns activity per day for the owner only", async () => {
+  const forms = await goal(alice, "Forms");
+  await log("alice", forms, "2026-10-26", 30);
+  await log("alice", forms, "2026-10-26", null);
+  await log("alice", forms, "2025-01-01", 10);
+  expect(await listCalendarDays(alice, { start: "2026-01-01", end: "2026-10-30" })).toEqual([{ date: "2026-10-26", count: 2, minutes: 30 }]);
+  expect(await listCalendarDays(bob, { start: "2026-01-01", end: "2026-10-30" })).toEqual([]);
 });
 
 test("the week summary counts every goal but only this week and only timed minutes", async () => {
@@ -77,7 +95,7 @@ test("dashboard data is scoped to the owner", async () => {
   await log("alice", forms, "2026-10-27", 30);
   expectOk(await createProject(alice, { title: "Lab", repoUrl: "https://github.com/a/lab", liveUrl: null, description: null }));
 
-  expect(await listActiveGoalProgress(bob, week)).toEqual([]);
+  expect(await listActiveGoalProgress(bob, calendar)).toEqual([]);
   expect(await getWeekSummary(bob, week)).toMatchObject({ ...week, activityCount: 0, totalMinutes: 0, untimedCount: 0 });
   expect(await listProjects(bob, { limit: 4 })).toEqual([]);
 });

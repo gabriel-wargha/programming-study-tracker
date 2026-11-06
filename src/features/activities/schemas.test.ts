@@ -40,7 +40,7 @@ describe("the log form schema", () => {
       { type: "course", description: " Module 3 ", minutes: "45" }, { type: "reading", description: "Docs", minutes: "" },
     ] }));
     expect(parsed.entries).toEqual([
-      { type: "course", description: "Module 3", minutes: 45 }, { type: "reading", description: "Docs", minutes: null },
+      { type: "course", description: "Module 3", minutes: 45, resourceId: null }, { type: "reading", description: "Docs", minutes: null, resourceId: null },
     ]);
   });
 

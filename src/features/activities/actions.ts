@@ -6,12 +6,13 @@ import {
   deleteActivitySchema, editActivitySchema, logActivitiesSchema, readActivityForm, readLogForm,
   type ActivityField, type LogField,
 } from "@/features/activities/schemas";
+import { syncProjectGitHub } from "@/features/projects/mutations";
 import { requireScope } from "@/lib/auth/scope";
 import type { FormResult } from "@/lib/forms/action-state";
 import { invalidInput } from "@/lib/forms/invalid-input";
 import { revalidateStudyData } from "@/lib/revalidate-study-data";
 
-type LogResult = FormResult<LogField, { goalId: string; count: number }>;
+type LogResult = FormResult<LogField, { goalId: string; count: number; newProjectId?: string }>;
 type ActivityResult = FormResult<ActivityField, { id: string }>;
 
 export async function logActivitiesAction(_previous: LogResult | null, formData: FormData): Promise<LogResult> {
@@ -21,6 +22,8 @@ export async function logActivitiesAction(_previous: LogResult | null, formData:
 
   const result = await logActivities(scope, parsed.data);
   if (!result.ok) return result;
+  // The log is already saved. The project page explains any GitHub problem and offers Refresh.
+  if (result.data.newProjectId) await syncProjectGitHub(scope, result.data.newProjectId);
   revalidateStudyData();
   redirect(`/goals/${result.data.goalId}?logged=${result.data.count}#activity-history`);
 }

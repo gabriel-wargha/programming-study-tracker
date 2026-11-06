@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/page-header";
 import { ActivityTypeTag } from "@/features/activities/components/activity-type-tag";
@@ -26,6 +27,12 @@ export function ActiveGoalProgress({ goals, activeGoalLimit }: { goals: Dashboar
                   </h3>
                   <p className="text-xs text-muted-foreground">{goal.topicName}</p>
                 </div>
+                {goal.stalledDays !== null && (
+                  <p className="inline-flex items-center gap-1.5 rounded-md border border-type-practice/30 bg-type-practice/5 px-2 py-1 text-xs font-medium text-type-practice">
+                    <TriangleAlert aria-hidden="true" className="size-3.5 shrink-0" />
+                    Stalled: no activity for {goal.stalledDays} days
+                  </p>
+                )}
                 {goal.latestActivity ? (
                   <div className="space-y-1">
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
