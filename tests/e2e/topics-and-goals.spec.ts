@@ -9,7 +9,7 @@ test("the owner manages a topic and a goal from creation to archive", async ({ p
   await page.goto("/settings");
   await page.getByLabel("Maximum active goals").fill("10");
   await page.getByRole("button", { name: "Save limit" }).click();
-  await expect(page.getByRole("status")).toHaveText("Active goal limit saved.");
+  await expect(page.getByRole("status").first()).toHaveText("Active goal limit saved.");
 
   // Topics: validation, creation, and duplicate names.
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Topics" }).click();

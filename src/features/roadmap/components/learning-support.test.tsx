@@ -14,7 +14,7 @@ const now = new Date("2026-11-05T12:00:00Z");
 const project: ProjectSummary = {
   id, title: "Lab", description: null, repoUrl: "https://github.com/o/r", liveUrl: null, activityCount: 0, goalCount: 0, lastActivityOn: null,
   githubFullName: "o/r", githubDescription: "A lab", githubPrimaryLanguage: "TypeScript", githubLanguages: { TypeScript: 75, CSS: 25 },
-  githubLastCommitAt: new Date("2026-11-01T10:00:00Z"), githubSyncedAt: new Date("2026-11-05T10:00:00Z"),
+  githubLastCommitAt: new Date("2026-11-01T10:00:00Z"), githubSyncedAt: new Date("2026-11-05T10:00:00Z"), isPublic: false,
 };
 
 test("a blocker can't be solved without a solution", async () => {

@@ -23,6 +23,7 @@ function summaries({ db, userId }: UserScope, filter?: SQL) {
     githubLanguages: projects.githubLanguages,
     githubLastCommitAt: projects.githubLastCommitAt,
     githubSyncedAt: projects.githubSyncedAt,
+    isPublic: projects.isPublic,
   }).from(projects)
     .leftJoin(activities, and(eq(activities.projectId, projects.id), eq(activities.userId, projects.userId)))
     .where(and(eq(projects.userId, userId), filter))

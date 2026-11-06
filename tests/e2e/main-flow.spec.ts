@@ -12,7 +12,7 @@ test("the main user flow works from topic to completed goal", async ({ page }, i
   await page.goto("/settings");
   await page.getByLabel("Maximum active goals").fill("10");
   await page.getByRole("button", { name: "Save limit" }).click();
-  await expect(page.getByRole("status")).toHaveText("Active goal limit saved.");
+  await expect(page.getByRole("status").first()).toHaveText("Active goal limit saved.");
 
   // 1. Create a topic.
   await page.goto("/topics");

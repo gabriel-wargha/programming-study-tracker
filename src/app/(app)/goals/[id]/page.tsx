@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { deleteActivityAction, updateActivityAction } from "@/features/activities/actions";
 import { ActivityHistory } from "@/features/activities/components/activity-history";
 import { listGoalActivities } from "@/features/activities/queries";
-import { changeGoalStatusAction, updateGoalAction } from "@/features/goals/actions";
+import { changeGoalStatusAction, setGoalPublicAction, updateGoalAction } from "@/features/goals/actions";
+import { PublicToggleForm } from "@/features/portfolio/components/public-toggle-form";
 import { GoalDetail } from "@/features/goals/components/goal-detail";
 import { GoalForm } from "@/features/goals/components/goal-form";
 import { GoalStatusForm } from "@/features/goals/components/goal-status-form";
@@ -67,6 +68,11 @@ export default async function GoalPage({ params, searchParams }: PageProps<"/goa
             completionPrompt={<CompletionRatingPrompt action={addConfidenceRatingAction} topicId={goal.topicId} topicName={goal.topicName} />}
           />
         </Panel>
+        {goal.status === "completed" && (
+          <Panel title="Portfolio" id="goal-portfolio-heading">
+            <PublicToggleForm action={setGoalPublicAction} id={goal.id} isPublic={goal.isPublic} noun="goal" />
+          </Panel>
+        )}
         <Disclosure summary="Edit goal">
           <GoalForm
             action={updateGoalAction}

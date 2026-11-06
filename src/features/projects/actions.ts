@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createProject, syncProjectGitHub, updateProject } from "@/features/projects/mutations";
+import { createProject, setProjectPublic, syncProjectGitHub, updateProject } from "@/features/projects/mutations";
 import {
-  editProjectSchema, gitHubSyncMessages, projectSchema, readProjectForm, refreshProjectSchema, type ProjectField,
+  editProjectSchema, gitHubSyncMessages, projectPublicSchema, projectSchema, readProjectForm, refreshProjectSchema, type ProjectField,
 } from "@/features/projects/schemas";
 import { requireScope } from "@/lib/auth/scope";
 import type { FormResult } from "@/lib/forms/action-state";
@@ -53,4 +53,17 @@ export async function refreshProjectAction(
   }
   revalidateStudyData();
   return { ok: true, data: { id: parsed.data.id } };
+}
+
+export async function setProjectPublicAction(
+  _previous: FormResult<"id", { isPublic: boolean }> | null,
+  formData: FormData,
+): Promise<FormResult<"id", { isPublic: boolean }>> {
+  const scope = await requireScope();
+  const parsed = projectPublicSchema.safeParse({ id: formData.get("id"), isPublic: formData.get("isPublic") });
+  if (!parsed.success) return { ok: false, error: "Choose a valid project." };
+
+  const result = await setProjectPublic(scope, parsed.data.id, parsed.data.isPublic === "true");
+  if (result.ok) revalidateStudyData();
+  return result;
 }

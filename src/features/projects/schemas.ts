@@ -30,6 +30,7 @@ export type ProjectSummary = {
   githubLanguages: Record<string, number> | null;
   githubLastCommitAt: Date | null;
   githubSyncedAt: Date | null;
+  isPublic: boolean;
 };
 export type ProjectGoal = { id: string; title: string; topicName: string; activityCount: number; totalMinutes: number };
 
@@ -42,6 +43,7 @@ export function readProjectForm(formData: FormData) {
   };
 }
 
+export const projectPublicSchema = z.object({ id: z.uuid(), isPublic: z.enum(["true", "false"]) }).strict();
 export const refreshProjectSchema = z.object({ id: z.uuid("Choose a valid project.") }).strict();
 
 export type GitHubSyncFailure = "not_found" | "forbidden" | "rate_limited" | "unavailable";

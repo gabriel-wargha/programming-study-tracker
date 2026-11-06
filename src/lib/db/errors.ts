@@ -1,4 +1,4 @@
-/** Codes raised by the rule triggers (see drizzle/0003_topic_and_goal_rules.sql and 0005_activity_rules.sql, and 0009_learning_support_rules.sql). */
+/** Codes raised by the rule triggers (see drizzle/0003_topic_and_goal_rules.sql and 0005_activity_rules.sql, 0009_learning_support_rules.sql, and 0012_portfolio_rules.sql). */
 export const ruleErrorCodes = {
   activeGoalLimitReached: "SL001",
   topicHasActiveGoals: "SL002",
@@ -10,6 +10,7 @@ export const ruleErrorCodes = {
   futureActivityDate: "SL008",
   resourceOutsideTopic: "SL009",
   prerequisiteLoop: "SL010",
+  publicGoalNotCompleted: "SL011",
 } as const;
 
 export const postgresErrorCodes = {

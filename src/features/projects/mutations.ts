@@ -59,3 +59,9 @@ export async function syncProjectGitHub(
   }).where(and(owned, eq(projects.repoUrl, project.repoUrl)));
   return { ok: true, synced: true };
 }
+
+export async function setProjectPublic({ db, userId }: UserScope, id: string, isPublic: boolean): Promise<FormResult<"id", { isPublic: boolean }>> {
+  const [project] = await db.update(projects).set({ isPublic })
+    .where(and(eq(projects.id, id), eq(projects.userId, userId))).returning({ isPublic: projects.isPublic });
+  return project ? { ok: true, data: project } : { ok: false, error: "This project could not be found." };
+}

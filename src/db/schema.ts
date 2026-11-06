@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
-  type AnyPgColumn, check, date, foreignKey, index, integer, jsonb, pgEnum, pgTable, pgView, primaryKey, smallint, text, timestamp, unique, uniqueIndex, uuid,
+  type AnyPgColumn, boolean, check, date, foreignKey, index, integer, jsonb, pgEnum, pgTable, pgView, primaryKey, smallint, text, timestamp, unique, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 
 const timestamps = {
@@ -19,11 +19,18 @@ export const profiles = pgTable(
     displayName: text("display_name"),
     githubUsername: text("github_username"),
     activeGoalLimit: smallint("active_goal_limit").notNull().default(3),
+    portfolioEnabled: boolean("portfolio_enabled").notNull().default(false),
+    portfolioSlug: text("portfolio_slug").unique("profiles_portfolio_slug_key"),
+    portfolioHeadline: text("portfolio_headline"),
     ...timestamps,
   },
   (table) => [
     check("profiles_user_id_check", sql`char_length(${table.userId}) between 1 and 255`),
     check("profiles_active_goal_limit_check", sql`${table.activeGoalLimit} between 1 and 10`),
+    check("profiles_portfolio_slug_check", sql`${table.portfolioSlug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(${table.portfolioSlug}) between 3 and 60`),
+    check("profiles_portfolio_headline_check", sql`char_length(${table.portfolioHeadline}) <= 200`),
+    check("profiles_github_username_check", sql`${table.githubUsername} ~ '^[A-Za-z0-9](-?[A-Za-z0-9])*$' and char_length(${table.githubUsername}) <= 39`),
+    check("profiles_portfolio_needs_slug_check", sql`not ${table.portfolioEnabled} or ${table.portfolioSlug} is not null`),
   ],
 );
 
@@ -67,9 +74,11 @@ export const goals = pgTable(
     targetDate: date("target_date", { mode: "string" }),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    isPublic: boolean("is_public").notNull().default(false),
     ...timestamps,
   },
   (table) => [
+    check("goals_public_needs_completed_check", sql`not ${table.isPublic} or ${table.status} = 'completed'`),
     unique("goals_id_user_id_key").on(table.id, table.userId),
     // A goal can only belong to a topic owned by the same user.
     foreignKey({
@@ -113,6 +122,7 @@ export const projects = pgTable(
     githubLanguages: jsonb("github_languages").$type<Record<string, number>>(),
     githubLastCommitAt: timestamp("github_last_commit_at", { withTimezone: true }),
     githubSyncedAt: timestamp("github_synced_at", { withTimezone: true }),
+    isPublic: boolean("is_public").notNull().default(false),
     ...timestamps,
   },
   (table) => [
@@ -271,6 +281,30 @@ export const topicPrerequisites = pgTable(
     }),
     index("topic_prerequisites_owner_idx").on(table.userId),
     check("topic_prerequisites_not_self_check", sql`${table.topicId} <> ${table.prerequisiteTopicId}`),
+  ],
+);
+
+/** Prompts to review a completed goal: stage 1 after 7 days, stage 2 after 30 more. */
+export const reviewReminders = pgTable(
+  "review_reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull().references(() => profiles.userId, { onDelete: "cascade" }),
+    goalId: uuid("goal_id").notNull(),
+    stage: smallint("stage").notNull(),
+    dueOn: date("due_on", { mode: "string" }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("review_reminders_goal_stage_key").on(table.goalId, table.stage),
+    foreignKey({
+      name: "review_reminders_owned_goal_fkey",
+      columns: [table.goalId, table.userId],
+      foreignColumns: [goals.id, goals.userId],
+    }),
+    index("review_reminders_owner_due_idx").on(table.userId, table.dueOn),
+    check("review_reminders_stage_check", sql`${table.stage} in (1, 2)`),
   ],
 );
 

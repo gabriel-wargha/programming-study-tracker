@@ -31,7 +31,8 @@ export default defineConfig({
       // The local owner flag is set on purpose: a production server must ignore it.
       command: "npm run build && npx next start --hostname 127.0.0.1 --port 3101",
       url: `${productionUrl}/login`,
-      env: e2eEnv,
+      // The public portfolio opens the database here, and PGlite allows one process per folder.
+      env: { ...e2eEnv, PGLITE_DATA_DIR: ".data/e2e-production" },
       reuseExistingServer: !process.env.CI,
       timeout: 300_000,
     },

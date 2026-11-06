@@ -7,7 +7,7 @@ import type { UserScope } from "@/lib/auth/scope";
 import type { ActiveGoalLink } from "@/lib/forms/action-state";
 import { isUuid } from "@/lib/ids";
 
-export type GoalDetailData = GoalSummary & { topicArchived: boolean };
+export type GoalDetailData = GoalSummary & { topicArchived: boolean; isPublic: boolean };
 
 const statusOrder = { active: 0, planned: 1, completed: 2, archived: 3 } as const;
 
@@ -23,6 +23,7 @@ function selectGoals({ db, userId }: UserScope, filter?: SQL) {
     definitionOfDone: goals.definitionOfDone,
     status: goals.status,
     targetDate: goals.targetDate,
+    isPublic: goals.isPublic,
   }).from(goals)
     .innerJoin(topics, and(eq(topics.id, goals.topicId), eq(topics.userId, goals.userId)))
     .where(and(eq(goals.userId, userId), filter));

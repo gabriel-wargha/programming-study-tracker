@@ -24,6 +24,8 @@ export const changeGoalStatusSchema = z.object({
   path: ["confirmed"], message: "Confirm that you've met the definition of done.",
 });
 
+export const publicToggleSchema = z.object({ id: z.uuid(), isPublic: z.enum(["true", "false"]) }).strict();
+
 export type GoalField = keyof z.input<typeof createGoalSchema> | "id";
 export type GoalStatusField = "id" | "status" | "confirmed";
 export type GoalFormValues = {

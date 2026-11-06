@@ -78,6 +78,20 @@
       "when": 1793937822102,
       "tag": "0010_blockers_require_solution",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793945524021,
+      "tag": "0011_reminders_and_portfolio",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793945526533,
+      "tag": "0012_portfolio_rules",
+      "breakpoints": true
     }
   ]
 }

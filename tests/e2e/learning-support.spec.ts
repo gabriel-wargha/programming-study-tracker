@@ -10,7 +10,7 @@ test("the owner manages resources, blockers, and the roadmap", async ({ page }, 
   await page.goto("/settings");
   await page.getByLabel("Maximum active goals").fill("10");
   await page.getByRole("button", { name: "Save limit" }).click();
-  await expect(page.getByRole("status")).toHaveText("Active goal limit saved.");
+  await expect(page.getByRole("status").first()).toHaveText("Active goal limit saved.");
 
   await page.goto("/topics");
   await page.getByLabel("Topic name").fill(basics);

@@ -1,12 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { changeGoalStatus, createGoal, updateGoal } from "@/features/goals/mutations";
+import { changeGoalStatus, createGoal, setGoalPublic, updateGoal } from "@/features/goals/mutations";
 import {
-  changeGoalStatusSchema, createGoalSchema, editGoalSchema,
+  changeGoalStatusSchema, createGoalSchema, editGoalSchema, publicToggleSchema,
   type GoalField, type GoalStatus, type GoalStatusField,
 } from "@/features/goals/schemas";
 import { requireScope } from "@/lib/auth/scope";
+import { getOwnerCalendar } from "@/lib/dates/owner-today";
 import type { FormResult } from "@/lib/forms/action-state";
 import { invalidInput } from "@/lib/forms/invalid-input";
 import { revalidateStudyData } from "@/lib/revalidate-study-data";
@@ -53,7 +54,21 @@ export async function changeGoalStatusAction(_previous: StatusResult | null, for
   });
   if (!parsed.success) return invalidInput<GoalStatusField>(parsed.error);
 
-  const result = await changeGoalStatus(scope, parsed.data.id, parsed.data.status);
+  const { today } = await getOwnerCalendar();
+  const result = await changeGoalStatus(scope, parsed.data.id, parsed.data.status, today);
+  if (result.ok) revalidateStudyData();
+  return result;
+}
+
+export async function setGoalPublicAction(
+  _previous: FormResult<"id", { isPublic: boolean }> | null,
+  formData: FormData,
+): Promise<FormResult<"id", { isPublic: boolean }>> {
+  const scope = await requireScope();
+  const parsed = publicToggleSchema.safeParse({ id: formData.get("id"), isPublic: formData.get("isPublic") });
+  if (!parsed.success) return { ok: false, error: "Choose a valid goal." };
+
+  const result = await setGoalPublic(scope, parsed.data.id, parsed.data.isPublic === "true");
   if (result.ok) revalidateStudyData();
   return result;
 }
