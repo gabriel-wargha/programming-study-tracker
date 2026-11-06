@@ -575,17 +575,23 @@ No cloud account or Docker is needed.
 
 ### Phase 7: Reviews and portfolio
 
-- [ ] Create `review_reminders`.
-- [ ] Create reminders when goals are completed.
-- [ ] Show due reminders on the dashboard and let the owner finish them.
-- [ ] Remove unfinished reminders when a goal is reopened.
-- [ ] Add portfolio settings and `is_public` controls.
-- [ ] Add `getPublicPortfolio(slug)` with an explicit column list.
-- [ ] Build `/u/[slug]`.
-- [ ] Add a Playwright test proving that private data does not appear on the portfolio.
-- [ ] Complete a final accessibility check.
+- [x] Create `review_reminders`.
+- [x] Create reminders when goals are completed.
+- [x] Show due reminders on the dashboard and let the owner finish them.
+- [x] Remove unfinished reminders when a goal is reopened.
+- [x] Add portfolio settings and `is_public` controls.
+- [x] Add `getPublicPortfolio(slug)` with an explicit column list.
+- [x] Build `/u/[slug]`.
+- [x] Add a Playwright test proving that private data does not appear on the portfolio.
+- [x] Complete a final accessibility check.
 
 **Done when:** Reminders work, and a visitor can see only the content the owner chose to make public.
+
+**Verified November 5, 2026:** Lint, type checking, 320 unit/component/database tests, the production build, and 34 Playwright tests pass in two consecutive full runs (the More menu test runs only at phone width, so its desktop run is skipped). Reminder tests cover the 7-day and 30-day dates, due-date filtering, finishing, reopening, completing again, archived goals, and ownership. Portfolio tests check the exact keys `getPublicPortfolio` returns and that activities, time, blockers, resources, ratings, IDs, and other owners' data are absent. The Playwright test reads the visible page and the raw HTML, including the data sent to the browser, and proves private goals, projects, activities, blockers, resources, and the user ID don't appear. It also confirms that reopening a goal or turning the portfolio off removes it from public view, and a production build serves `/u/[slug]` without login and returns a real 404 for unknown pages.
+
+**Accessibility check:** `tests/e2e/accessibility.spec.ts` audits each main screen at desktop and phone widths for one `h1`, heading order, named controls, valid ARIA references, unique IDs, target size, the skip link, and sideways scrolling. It also covers keyboard use of a form and the More menu. `src/app/design-tokens.test.ts` checks 4.5:1 contrast for the color tokens. This is an automated structural check; no screen reader was used.
+
+**Not verified:** Due reminders in a browser. A reminder is due 7 days after completion and the app has no way to move the clock, so the dashboard list is covered by database and component tests.
 
 ### Phase 8: Neon, login, and deployment
 
@@ -664,6 +670,11 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-05 | Projects can be created and edited but not deleted in Phase 3 | The plan does not define project deletion, and activities reference projects |
 | 2026-11-05 | The browser reports its time zone in a `study_time_zone` cookie; the server uses it (validated, UTC fallback) to work out the owner's "today" and current week | The dashboard, weekly review, and stalled alerts need the owner's week; the cookie holds no secret and an invalid value only falls back to UTC |
 | 2026-11-05 | Redesign the UI as a light code-editor theme: IBM Plex Sans and Mono via `next/font`, sidebar nav on desktop and a bottom tab bar on phones, syntax-token colors per activity type, a Mon–Sun week strip on the dashboard, and edit forms folded into disclosures | Owner chose this direction; it replaces the earlier system-font decision now that fonts can be downloaded at build time |
+| 2026-11-05 | Schedule reminders in the status change's transaction instead of a trigger | Due dates use the owner's local date, which the database doesn't know |
+| 2026-11-05 | Completing a reopened goal restarts its reviews at stage 1 | The goal was reopened because the work wasn't finished, so earlier reviews no longer apply |
+| 2026-11-05 | A public goal that is reopened or archived becomes private and stays private when completed again | Only completed goals can be public, and publishing should be a deliberate choice each time |
+| 2026-11-05 | Portfolio shows a public goal's title, topic, definition of done, description, and completion month | The owner chose to share that goal; IDs and exact timestamps add nothing for a visitor |
+| 2026-11-05 | Keep display name and GitHub username in the portfolio settings | They appear only on the public page, so the owner should control them there |
 | 2026-11-05 | Cancel React's automatic form reset with `onReset={keepValuesOnReset}` on forms with dropdowns or radios | After a form action React resets the form, and a controlled `<select>` then shows its first option while its state keeps the old choice, so the next save could send the wrong value |
 | 2026-11-05 | Show four main tabs plus a More menu on phones | The app now has seven sections, more than a bottom tab bar can hold |
 | 2026-11-05 | Let Playwright build into `.next-e2e` | Next.js allows one dev server per build folder, so tests can now run while `npm run dev` is open |
