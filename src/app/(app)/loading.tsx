@@ -4,8 +4,8 @@ export default function Loading() {
     <div role="status" aria-live="polite" className="space-y-6">
       <span className="sr-only">Loading…</span>
       <div aria-hidden="true" className="h-9 w-56 animate-pulse rounded-md bg-muted" />
-      <div aria-hidden="true" className="grid gap-4 md:grid-cols-2">
-        {[0, 1, 2, 3].map((item) => <div key={item} className="h-36 animate-pulse rounded-xl border bg-muted/60" />)}
+      <div aria-hidden="true" className="grid gap-3">
+        {[0, 1, 2, 3].map((item) => <div key={item} className="h-24 animate-pulse rounded-lg border bg-card" />)}
       </div>
     </div>
   );

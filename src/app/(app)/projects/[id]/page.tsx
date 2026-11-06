@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Disclosure } from "@/components/disclosure";
 import { updateProjectAction } from "@/features/projects/actions";
 import { ProjectDetail } from "@/features/projects/components/project-detail";
 import { ProjectForm } from "@/features/projects/components/project-form";
@@ -16,18 +17,21 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
   const goals = await listProjectGoals(scope, project.id);
 
   return (
-    <ProjectDetail project={project} goals={goals}>
-      <section aria-labelledby="edit-project-heading" className="max-w-2xl rounded-xl border bg-card p-6">
-        <h2 id="edit-project-heading" className="mb-4 text-lg font-semibold">Edit project</h2>
-        <ProjectForm
-          key={[project.title, project.repoUrl, project.liveUrl, project.description].join("\n")}
-          action={updateProjectAction}
-          initialValues={{
-            id: project.id, title: project.title, repoUrl: project.repoUrl,
-            liveUrl: project.liveUrl ?? "", description: project.description ?? "",
-          }}
-        />
-      </section>
-    </ProjectDetail>
+    <ProjectDetail
+      project={project}
+      goals={goals}
+      aside={
+        <Disclosure summary="Edit project">
+          <ProjectForm
+            key={[project.title, project.repoUrl, project.liveUrl, project.description].join("\n")}
+            action={updateProjectAction}
+            initialValues={{
+              id: project.id, title: project.title, repoUrl: project.repoUrl,
+              liveUrl: project.liveUrl ?? "", description: project.description ?? "",
+            }}
+          />
+        </Disclosure>
+      }
+    />
   );
 }

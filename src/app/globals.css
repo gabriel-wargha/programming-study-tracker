@@ -22,8 +22,16 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, monospace;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+  --color-canvas: var(--canvas);
+  --color-subtle: var(--subtle);
+  --color-type-course: var(--type-course);
+  --color-type-reading: var(--type-reading);
+  --color-type-video: var(--type-video);
+  --color-type-practice: var(--type-practice);
+  --color-type-project: var(--type-project);
+  --color-type-other: var(--type-other);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -31,25 +39,36 @@
 }
 
 :root {
-  --radius: 0.75rem;
-  --background: #f7f8f3;
-  --foreground: #23342d;
+  /* A light editor theme: cool canvas, white panes, slate ink, keyword indigo. */
+  --radius: 0.5rem;
+  --canvas: #f5f6f8;
+  --background: #f5f6f8;
+  --foreground: #1b2230;
   --card: #ffffff;
-  --card-foreground: #23342d;
+  --card-foreground: #1b2230;
   --popover: #ffffff;
-  --popover-foreground: #23342d;
-  --primary: #285641;
+  --popover-foreground: #1b2230;
+  --primary: #3a3fd1;
   --primary-foreground: #ffffff;
-  --secondary: #e8eee3;
-  --secondary-foreground: #285641;
-  --muted: #eef1e9;
-  --muted-foreground: #59655c;
-  --accent: #e8eee3;
-  --accent-foreground: #285641;
-  --destructive: #b42318;
-  --border: #dce2d7;
-  --input: #dce2d7;
-  --ring: #285641;
+  --secondary: #eceefb;
+  --secondary-foreground: #2e33ae;
+  --muted: #eef0f3;
+  --muted-foreground: #5b6476;
+  --subtle: #f9fafb;
+  --accent: #eef0f3;
+  --accent-foreground: #1b2230;
+  --destructive: #c62828;
+  --border: #dfe3ea;
+  --input: #cfd5df;
+  --ring: #3a3fd1;
+
+  /* Activity types use syntax-token colors; each is always shown with its label. */
+  --type-course: #0b6bcb;
+  --type-reading: #1a7f37;
+  --type-video: #8250df;
+  --type-practice: #bc4c00;
+  --type-project: #0e7c86;
+  --type-other: #6e7781;
 }
 
 @layer base {
@@ -59,6 +78,11 @@
 
   body {
     @apply bg-background font-sans text-foreground;
+    font-feature-settings: "ss02";
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
   }
 
   :focus-visible {
@@ -67,5 +91,12 @@
 
   ::selection {
     @apply bg-secondary text-secondary-foreground;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -8,7 +8,9 @@ import {
   NEW_PROJECT, activityTypeLabels, activityTypes, logActivitiesSchema, readLogForm,
   type ActivityType, type LogField,
 } from "@/features/activities/schemas";
+import { activityTypeColors } from "@/features/activities/components/activity-type-tag";
 import type { ProjectOption } from "@/features/projects/schemas";
+import { cn } from "@/lib/utils";
 import { useLocalToday } from "@/lib/dates/use-local-today";
 import type { FormAction, FormResult } from "@/lib/forms/action-state";
 import { fieldErrors } from "@/lib/forms/field-errors";
@@ -59,7 +61,7 @@ export function ActivityLogForm({ action, goalId, projects }: {
       <input type="hidden" name="goalId" value={goalId} />
       <fieldset disabled={pending} className="space-y-6">
         <div>
-          <label htmlFor={`${id}-date`} className="block text-sm font-medium">Date</label>
+          <label htmlFor={`${id}-date`} className="block text-sm font-semibold">Date</label>
           <p id={`${id}-date-hint`} className="mt-1 text-sm text-muted-foreground">Weeks run Monday to Sunday. Future dates aren&apos;t allowed.</p>
           <Input id={`${id}-date`} name="occurredOn" type="date" required max={today ?? undefined}
             value={date ?? today ?? ""} onChange={(event) => setDate(event.target.value)}
@@ -68,21 +70,24 @@ export function ActivityLogForm({ action, goalId, projects }: {
         </div>
 
         <fieldset aria-describedby={describedBy("types", `${id}-types-hint`)}>
-          <legend className="text-sm font-medium">What did you do?</legend>
+          <legend className="text-sm font-semibold">What did you do?</legend>
           <p id={`${id}-types-hint`} className="mt-1 text-sm text-muted-foreground">Choose everything that applies. Each choice is saved as its own activity.</p>
           <FieldError id={errorId("types")} errors={errors?.types} />
-          <ul className="mt-3 space-y-3">
+          <ul className="mt-3 space-y-2">
             {activityTypes.map((type) => {
               const checked = selected.includes(type);
               const labelId = `${id}-${type}-label`;
               const descriptionField = `description-${type}` as const;
               const minutesField = `minutes-${type}` as const;
               return (
-                <li key={type} className={checked ? "rounded-lg border bg-card p-4" : "rounded-lg border border-transparent px-4 py-1"}>
+                <li key={type} className={cn("rounded-lg border bg-card px-4 transition-colors", checked ? "border-primary/50 py-3 shadow-[0_0_0_3px_var(--secondary)]" : "py-1 hover:bg-subtle")}>
                   <div className="flex min-h-11 items-center gap-3">
                     <input id={`${id}-${type}`} type="checkbox" name="types" value={type} checked={checked}
                       onChange={(event) => toggle(type, event.target.checked)} className="size-5 shrink-0 accent-primary" />
-                    <label id={labelId} htmlFor={`${id}-${type}`} className="text-sm font-medium">{activityTypeLabels[type]}</label>
+                    <label id={labelId} htmlFor={`${id}-${type}`} className="flex flex-1 cursor-pointer items-center gap-2 py-2 text-sm font-medium">
+                      <span aria-hidden="true" className={cn("h-4 w-1 rounded-full", activityTypeColors[type].bar)} />
+                      {activityTypeLabels[type]}
+                    </label>
                   </div>
                   {checked && (
                     <div role="group" aria-labelledby={labelId} className="mt-3 grid gap-4 sm:grid-cols-[1fr_9rem]">

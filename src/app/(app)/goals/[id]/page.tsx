@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Disclosure } from "@/components/disclosure";
+import { Panel } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { deleteActivityAction, updateActivityAction } from "@/features/activities/actions";
 import { ActivityHistory } from "@/features/activities/components/activity-history";
 import { listGoalActivities } from "@/features/activities/queries";
@@ -26,30 +29,14 @@ export default async function GoalPage({ params, searchParams }: PageProps<"/goa
     listGoalActivities(scope, goal.id), listProjectOptions(scope),
   ]);
 
+  const canLog = goal.status === "active";
+
   return (
-    <GoalDetail goal={goal}>
-      <section id="activity-history" aria-labelledby="activity-history-heading" className="scroll-mt-8 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 id="activity-history-heading" className="text-xl font-semibold">Activity history</h2>
-          {goal.status === "active" ? (
-            <Link href={`/goals/${goal.id}/log`} className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none">
-              Log this week
-            </Link>
-          ) : (
-            <p className="text-sm text-muted-foreground">Only active goals can receive new activities.</p>
-          )}
-        </div>
-        {Number.isInteger(logged) && logged > 0 && (
-          <p role="status" className="rounded-md border border-primary/30 p-3 text-sm text-primary">
-            Saved {logged === 1 ? "1 activity" : `${logged} activities`}.
-          </p>
-        )}
-        <p className="text-sm text-muted-foreground">Weekly totals include only activities with time recorded.</p>
-        <ActivityHistory activities={activities} projects={projects} updateAction={updateActivityAction} deleteAction={deleteActivityAction} />
-      </section>
-      <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-        <section aria-labelledby="goal-status-heading" className="h-fit rounded-xl border bg-card p-6">
-          <h2 id="goal-status-heading" className="mb-4 text-lg font-semibold">Status</h2>
+    <GoalDetail
+      goal={goal}
+      actions={canLog && <Button asChild><Link href={`/goals/${goal.id}/log`}>Log this week</Link></Button>}
+      aside={<>
+        <Panel title="Status" id="goal-status-heading">
           <GoalStatusForm
             action={changeGoalStatusAction}
             goalId={goal.id}
@@ -58,9 +45,8 @@ export default async function GoalPage({ params, searchParams }: PageProps<"/goa
             activeGoalLimit={activeGoalLimit}
             topicArchived={goal.topicArchived}
           />
-        </section>
-        <section aria-labelledby="edit-goal-heading" className="rounded-xl border bg-card p-6">
-          <h2 id="edit-goal-heading" className="mb-4 text-lg font-semibold">Edit goal</h2>
+        </Panel>
+        <Disclosure summary="Edit goal">
           <GoalForm
             action={updateGoalAction}
             topics={topics}
@@ -75,8 +61,22 @@ export default async function GoalPage({ params, searchParams }: PageProps<"/goa
               targetDate: goal.targetDate ?? "",
             }}
           />
-        </section>
-      </div>
+        </Disclosure>
+      </>}
+    >
+      <section id="activity-history" aria-labelledby="activity-history-heading" className="scroll-mt-8 space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 id="activity-history-heading" className="text-lg font-semibold">Activity history</h2>
+          <p className="text-xs text-muted-foreground">Weekly totals include only activities with time recorded.</p>
+        </div>
+        {!canLog && <p className="text-sm text-muted-foreground">Only active goals can receive new activities.</p>}
+        {Number.isInteger(logged) && logged > 0 && (
+          <p role="status" className="rounded-md border border-primary/30 bg-secondary px-4 py-3 text-sm text-secondary-foreground">
+            Saved {logged === 1 ? "1 activity" : `${logged} activities`}.
+          </p>
+        )}
+        <ActivityHistory activities={activities} projects={projects} updateAction={updateActivityAction} deleteAction={deleteActivityAction} />
+      </section>
     </GoalDetail>
   );
 }

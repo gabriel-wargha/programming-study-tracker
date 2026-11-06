@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Disclosure } from "@/components/disclosure";
+import { Panel } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { listActiveGoals, listGoals } from "@/features/goals/queries";
 import { archiveTopicAction, updateTopicAction } from "@/features/topics/actions";
 import { ArchiveTopicForm } from "@/features/topics/components/archive-topic-form";
@@ -22,33 +25,28 @@ export default async function TopicPage({ params }: PageProps<"/topics/[id]">) {
   ]);
 
   return (
-    <TopicDetail topic={topic} goals={goals}>
-      {!topic.archived && (
-        <p>
-          <Link href={`/goals/new?topic=${topic.id}`} className="font-medium text-primary underline underline-offset-4">
-            Add a goal to this topic
-          </Link>
-        </p>
-      )}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section aria-labelledby="edit-topic-heading" className="rounded-xl border bg-card p-6">
-          <h2 id="edit-topic-heading" className="mb-4 text-lg font-semibold">Edit topic</h2>
+    <TopicDetail
+      topic={topic}
+      goals={goals}
+      actions={!topic.archived && <Button asChild><Link href={`/goals/new?topic=${topic.id}`}>Add a goal to this topic</Link></Button>}
+      aside={<>
+        <Disclosure summary="Edit topic">
           <TopicForm
             key={`${topic.name}\n${topic.description ?? ""}`}
             action={updateTopicAction}
             initialValues={{ id: topic.id, name: topic.name, description: topic.description ?? "" }}
           />
-        </section>
+        </Disclosure>
         {!topic.archived && (
-          <section aria-labelledby="archive-topic-heading" className="h-fit rounded-xl border bg-card p-6">
-            <h2 id="archive-topic-heading" className="mb-2 text-lg font-semibold">Archive topic</h2>
-            <p className="mb-4 text-sm leading-6 text-muted-foreground">
-              Archived topics keep their goals and history but can&apos;t receive new or active goals.
-            </p>
+          <Panel
+            title="Archive topic"
+            id="archive-topic-heading"
+            description="Archived topics keep their goals and history but can't receive new or active goals."
+          >
             <ArchiveTopicForm action={archiveTopicAction} topicId={topic.id} activeGoals={activeGoals} />
-          </section>
+          </Panel>
         )}
-      </div>
-    </TopicDetail>
+      </>}
+    />
   );
 }

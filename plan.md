@@ -655,6 +655,7 @@ Move to a paid plan before charging for the app or using it commercially.
 | 2026-11-05 | Activities keep their goal, and activities on completed or archived goals can still be edited and deleted | History stays correct after a goal changes status; only new activities need an active goal (`SL006`, `SL007`) |
 | 2026-11-05 | Projects can be created and edited but not deleted in Phase 3 | The plan does not define project deletion, and activities reference projects |
 | 2026-11-05 | The browser reports its time zone in a `study_time_zone` cookie; the server uses it (validated, UTC fallback) to work out the owner's "today" and current week | The dashboard, weekly review, and stalled alerts need the owner's week; the cookie holds no secret and an invalid value only falls back to UTC |
+| 2026-11-05 | Redesign the UI as a light code-editor theme: IBM Plex Sans and Mono via `next/font`, sidebar nav on desktop and a bottom tab bar on phones, syntax-token colors per activity type, a Mon–Sun week strip on the dashboard, and edit forms folded into disclosures | Owner chose this direction; it replaces the earlier system-font decision now that fonts can be downloaded at build time |
 | 2026-11-05 | Use one `loading.tsx` for the whole app, so unknown IDs return the not-found page with HTTP 200 and `noindex` instead of a 404 status | A loading screen starts streaming before `notFound()` runs; for a private, signed-in app a soft 404 is harmless, and tests check the not-found page instead |
 
 ## 15. Ideas for later

@@ -10,6 +10,8 @@ export type DashboardGoal = {
   weekMinutes: number;
 };
 
+export type WeekDay = { date: string; activityCount: number; minutes: number };
+
 export type WeekSummary = {
   start: string;
   end: string;
@@ -17,4 +19,6 @@ export type WeekSummary = {
   /** Only activities with time recorded count toward the total. */
   totalMinutes: number;
   untimedCount: number;
+  /** Monday through Sunday, including days with nothing logged. */
+  days: WeekDay[];
 };

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { GoalList } from "@/features/goals/components/goal-list";
 import { listGoals } from "@/features/goals/queries";
 import { goalStatusLabels } from "@/features/goals/rules";
@@ -17,15 +19,14 @@ export default async function GoalsPage({ searchParams }: PageProps<"/goals">) {
   const goals = await listGoals(await requireScope());
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight">Goals</h1>
-        <Link href="/goals/new" className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none">
-          New goal
-        </Link>
-      </div>
-      <nav aria-label="Filter goals by status">
-        <ul className="flex flex-wrap gap-2">
+    <>
+      <PageHeader
+        title="Goals"
+        description="Small, focused goals, each with a clear finish line."
+        actions={<Button asChild><Link href="/goals/new">New goal</Link></Button>}
+      />
+      <nav aria-label="Filter goals by status" className="mb-6 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <ul className="inline-flex min-w-max gap-1 rounded-lg border bg-card p-1">
           {filters.map((filter) => {
             const current = filter === status;
             const count = filter === "all" ? goals.length : goals.filter((goal) => goal.status === filter).length;
@@ -35,11 +36,12 @@ export default async function GoalsPage({ searchParams }: PageProps<"/goals">) {
                   href={filter === "all" ? "/goals" : `/goals?status=${filter}`}
                   aria-current={current ? "page" : undefined}
                   className={cn(
-                    "inline-flex min-h-11 items-center rounded-full border px-4 text-sm",
-                    current ? "border-primary bg-secondary font-semibold underline underline-offset-4" : "text-muted-foreground hover:text-foreground",
+                    "inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-sm",
+                    current ? "bg-foreground font-medium text-card" : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
-                  {filter === "all" ? "All" : goalStatusLabels[filter]} ({count})
+                  {filter === "all" ? "All" : goalStatusLabels[filter]}
+                  <span className={cn("tabular-nums text-xs", current ? "text-card/70" : "text-muted-foreground")}>{count}</span>
                 </Link>
               </li>
             );
@@ -47,6 +49,6 @@ export default async function GoalsPage({ searchParams }: PageProps<"/goals">) {
         </ul>
       </nav>
       <GoalList goals={goals} status={status} />
-    </div>
+    </>
   );
 }

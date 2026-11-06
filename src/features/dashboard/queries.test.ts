@@ -64,7 +64,12 @@ test("the week summary counts every goal but only this week and only timed minut
   await log("alice", hooks, "2026-11-02", 120);
   await log("alice", hooks, "2026-10-25", 120);
 
-  expect(await getWeekSummary(alice, week)).toEqual({ ...week, activityCount: 2, totalMinutes: 45, untimedCount: 1 });
+  const summary = await getWeekSummary(alice, week);
+  expect(summary).toMatchObject({ ...week, activityCount: 2, totalMinutes: 45, untimedCount: 1 });
+  expect(summary.days.map((day) => [day.date, day.activityCount, day.minutes])).toEqual([
+    ["2026-10-26", 1, 45], ["2026-10-27", 0, 0], ["2026-10-28", 0, 0], ["2026-10-29", 0, 0],
+    ["2026-10-30", 0, 0], ["2026-10-31", 0, 0], ["2026-11-01", 1, 0],
+  ]);
 });
 
 test("dashboard data is scoped to the owner", async () => {
@@ -73,7 +78,7 @@ test("dashboard data is scoped to the owner", async () => {
   expectOk(await createProject(alice, { title: "Lab", repoUrl: "https://github.com/a/lab", liveUrl: null, description: null }));
 
   expect(await listActiveGoalProgress(bob, week)).toEqual([]);
-  expect(await getWeekSummary(bob, week)).toEqual({ ...week, activityCount: 0, totalMinutes: 0, untimedCount: 0 });
+  expect(await getWeekSummary(bob, week)).toMatchObject({ ...week, activityCount: 0, totalMinutes: 0, untimedCount: 0 });
   expect(await listProjects(bob, { limit: 4 })).toEqual([]);
 });
 

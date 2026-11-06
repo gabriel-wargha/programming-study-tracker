@@ -53,6 +53,7 @@ test("the owner manages a topic and a goal from creation to archive", async ({ p
   await expect(page.getByRole("article").getByText("Completed", { exact: true })).toBeVisible();
 
   // Editing keeps the goal on its page.
+  await page.getByText("Edit goal", { exact: true }).click();
   await page.getByLabel("Goal title").fill(`${goalTitle} (edited)`);
   await page.getByRole("button", { name: "Save goal" }).click();
   await expect(page.getByRole("form", { name: "Edit goal" }).getByRole("status")).toHaveText("Goal saved.");

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Panel, PageHeader } from "@/components/page-header";
 import { updateActiveGoalLimitAction } from "@/features/settings/actions";
 import { ActiveGoalLimitForm } from "@/features/settings/components/active-goal-limit-form";
 import { getActiveGoalLimit, listActiveGoals } from "@/features/goals/queries";
@@ -11,15 +12,11 @@ export default async function SettingsPage() {
   const [activeGoals, activeGoalLimit] = await Promise.all([listActiveGoals(scope), getActiveGoalLimit(scope)]);
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-      <section aria-labelledby="limit-heading" className="rounded-xl border bg-card p-6">
-        <h2 id="limit-heading" className="mb-2 text-lg font-semibold">Active goal limit</h2>
-        <p className="mb-4 text-sm leading-6 text-muted-foreground">
-          Keeping only a few goals active at once helps you finish them.
-        </p>
+    <div className="max-w-2xl">
+      <PageHeader title="Settings" />
+      <Panel title="Active goal limit" id="limit-heading" description="Keeping only a few goals active at once helps you finish them.">
         <ActiveGoalLimitForm action={updateActiveGoalLimitAction} activeGoalLimit={activeGoalLimit} activeGoals={activeGoals} />
-      </section>
+      </Panel>
     </div>
   );
 }

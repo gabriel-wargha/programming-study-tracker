@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatMinutes } from "@/lib/dates/format-minutes";
+import { formatMinutes, formatMinutesShort } from "@/lib/dates/format-minutes";
 import {
   addDays, endOfWeek, formatWeekRange, latestActivityDate, localToday, startOfWeek, todayInTimeZone, weekRange,
 } from "@/lib/dates/weeks";
@@ -62,4 +62,5 @@ test("minutes are shown in hours and minutes", () => {
   expect(formatMinutes(120)).toBe("2 h");
   expect(formatMinutes(90)).toBe("1 h 30 min");
   expect(formatMinutes(1440)).toBe("24 h");
+  expect([45, 120, 95].map(formatMinutesShort)).toEqual(["45m", "2h", "1h35"]);
 });

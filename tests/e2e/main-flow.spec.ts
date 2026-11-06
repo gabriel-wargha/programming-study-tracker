@@ -57,7 +57,7 @@ test("the main user flow works from topic to completed goal", async ({ page }, i
 
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Dashboard" }).click();
   await expect(card).toContainText("This week: 2 activities, 2 h");
-  await expect(card).toContainText(/Latest: (Practiced exercises|Built a project) on /);
+  await expect(card).toContainText(/Latest:\s*(Practiced exercises|Built a project)\s*on/);
   await expect(page.getByRole("region", { name: "Recent projects" }).getByRole("link", { name: projectTitle })).toBeVisible();
   await expect(page.getByRole("region", { name: "This week" })).toContainText(/Activities\d+/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

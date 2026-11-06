@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { createGoalAction } from "@/features/goals/actions";
 import { GoalForm } from "@/features/goals/components/goal-form";
 import { getActiveGoalLimit, listActiveGoals } from "@/features/goals/queries";
@@ -17,20 +18,26 @@ export default async function NewGoalPage({ searchParams }: PageProps<"/goals/ne
   const topicId = topics.find((topic) => topic.id === requested)?.id ?? "";
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-3xl font-semibold tracking-tight">New goal</h1>
+    <div className="max-w-2xl">
+      <PageHeader
+        back={{ href: "/goals", label: "Goals" }}
+        title="New goal"
+        description="Keep it small enough to finish in a few weeks, and describe exactly what done looks like."
+      />
       {!topics.length && (
-        <p className="text-sm">
+        <p className="mb-4 text-sm">
           <Link href="/topics" className="font-medium text-primary underline underline-offset-4">Create a topic first</Link>
         </p>
       )}
-      <GoalForm
-        action={createGoalAction}
-        topics={topics}
-        activeGoals={activeGoals}
-        activeGoalLimit={activeGoalLimit}
-        initialValues={{ topicId, title: "", description: "", definitionOfDone: "", targetDate: "" }}
-      />
+      <div className="rounded-lg border bg-card p-5 sm:p-6">
+        <GoalForm
+          action={createGoalAction}
+          topics={topics}
+          activeGoals={activeGoals}
+          activeGoalLimit={activeGoalLimit}
+          initialValues={{ topicId, title: "", description: "", definitionOfDone: "", targetDate: "" }}
+        />
+      </div>
     </div>
   );
 }

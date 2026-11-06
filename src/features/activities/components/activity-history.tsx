@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Pencil } from "lucide-react";
+import { EmptyState } from "@/components/page-header";
+import { ActivityTypeTag } from "@/features/activities/components/activity-type-tag";
 import { ActivityEditForm } from "@/features/activities/components/activity-edit-form";
 import { DeleteActivityForm } from "@/features/activities/components/delete-activity-form";
 import { activityTypeLabels, type ActivityField, type ActivityItem } from "@/features/activities/schemas";
@@ -19,10 +22,9 @@ export function ActivityHistory({ activities, projects, updateAction, deleteActi
 }) {
   if (!activities.length) {
     return (
-      <div className="rounded-xl border border-dashed p-8">
-        <h3 className="font-semibold">No activity yet</h3>
-        <p className="mt-2 text-sm text-muted-foreground">Logged activities appear here, grouped by week.</p>
-      </div>
+      <EmptyState title="No activity yet" headingLevel={3}>
+        <p>Logged activities appear here, grouped by week.</p>
+      </EmptyState>
     );
   }
   return (
@@ -32,11 +34,11 @@ export function ActivityHistory({ activities, projects, updateAction, deleteActi
         const timed = week.activities.length - week.untimedCount;
         return (
           <li key={week.weekStart}>
-            <section aria-labelledby={headingId} className="rounded-xl border bg-card">
-              <header className="flex flex-wrap items-baseline justify-between gap-2 border-b px-5 py-4">
-                <h3 id={headingId} className="font-semibold">Week of {formatWeekRange(week.weekStart)}</h3>
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{timed ? formatMinutes(week.totalMinutes) : "No time"} recorded</span>
+            <section aria-labelledby={headingId} className="overflow-hidden rounded-lg border bg-card">
+              <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b bg-subtle px-5 py-3">
+                <h3 id={headingId} className="text-sm font-semibold">Week of {formatWeekRange(week.weekStart)}</h3>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground tabular-nums">{timed ? formatMinutes(week.totalMinutes) : "No time"} recorded</span>
                   {" · "}{activityCount(week.activities.length)}
                   {week.untimedCount > 0 && timed > 0 && ` (${week.untimedCount} without time)`}
                 </p>
@@ -46,20 +48,22 @@ export function ActivityHistory({ activities, projects, updateAction, deleteActi
                   const label = activityTypeLabels[activity.type];
                   const name = `${label} on ${formatCalendarDate(activity.occurredOn)}`;
                   return (
-                    <li key={activity.id} className="space-y-3 px-5 py-4">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                        <span className="rounded-full border px-2.5 py-0.5 text-xs font-medium">{label}</span>
-                        <time dateTime={activity.occurredOn} className="text-muted-foreground">{formatCalendarDate(activity.occurredOn)}</time>
-                        <span className="text-muted-foreground">{activity.minutes ? formatMinutes(activity.minutes) : "No time recorded"}</span>
+                    <li key={activity.id} className="space-y-2 px-5 py-4">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <ActivityTypeTag type={activity.type} />
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          <time dateTime={activity.occurredOn}>{formatCalendarDate(activity.occurredOn)}</time>
+                          {" · "}{activity.minutes ? formatMinutes(activity.minutes) : "No time recorded"}
+                        </span>
                       </div>
-                      <p className="leading-7 whitespace-pre-wrap wrap-break-word">{activity.description}</p>
+                      <p className="max-w-[70ch] text-[0.9375rem] leading-relaxed whitespace-pre-wrap wrap-break-word">{activity.description}</p>
                       {activity.project && (
-                        <p className="text-sm">Project: <Link href={`/projects/${activity.project.id}`} className="font-medium text-primary underline underline-offset-4">{activity.project.title}</Link></p>
+                        <p className="text-sm text-muted-foreground">Project: <Link href={`/projects/${activity.project.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{activity.project.title}</Link></p>
                       )}
-                      <div className="flex flex-wrap items-start gap-3">
-                        <details className="group w-full rounded-md sm:w-auto sm:flex-1 [&[open]]:border [&[open]]:p-4">
-                          <summary className="inline-flex min-h-9 cursor-pointer items-center rounded-md border px-3 text-sm font-medium hover:bg-accent group-open:mb-4">
-                            Edit<span className="sr-only">: {name}</span>
+                      <div className="flex flex-wrap items-start gap-2 pt-1">
+                        <details className="group w-full sm:w-auto sm:flex-1 open:rounded-lg open:border open:p-4">
+                          <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground group-open:mb-4 group-open:text-foreground [&::-webkit-details-marker]:hidden">
+                            <Pencil aria-hidden="true" className="size-3.5" />Edit<span className="sr-only">: {name}</span>
                           </summary>
                           <ActivityEditForm action={updateAction} activity={activity} projects={projects} />
                         </details>

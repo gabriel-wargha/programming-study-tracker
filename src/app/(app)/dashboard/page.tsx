@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
 import { ActiveGoalProgress } from "@/features/dashboard/components/active-goal-progress";
 import { RecentProjects } from "@/features/dashboard/components/recent-projects";
 import { WeekSummaryPanel } from "@/features/dashboard/components/week-summary";
@@ -12,21 +13,21 @@ export const metadata: Metadata = { title: "Dashboard · Programming Study Track
 
 export default async function DashboardPage() {
   const scope = await requireScope();
-  const { week } = await getOwnerCalendar();
+  const { today, week } = await getOwnerCalendar();
   const [goals, summary, activeGoalLimit, projects] = await Promise.all([
     listActiveGoalProgress(scope, week), getWeekSummary(scope, week), getActiveGoalLimit(scope), listProjects(scope, { limit: 4 }),
   ]);
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-      <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
-        <ActiveGoalProgress goals={goals} activeGoalLimit={activeGoalLimit} />
-        <div className="space-y-6">
-          <WeekSummaryPanel summary={summary} />
+    <>
+      <PageHeader title="Dashboard" />
+      <div className="space-y-10">
+        <WeekSummaryPanel summary={summary} today={today} />
+        <div className="grid gap-10 xl:grid-cols-[1fr_18rem]">
+          <ActiveGoalProgress goals={goals} activeGoalLimit={activeGoalLimit} />
           <RecentProjects projects={projects} />
         </div>
       </div>
-    </div>
+    </>
   );
 }

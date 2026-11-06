@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Panel, PageHeader } from "@/components/page-header";
 import { createTopicAction } from "@/features/topics/actions";
 import { TopicForm } from "@/features/topics/components/topic-form";
 import { TopicList } from "@/features/topics/components/topic-list";
@@ -11,15 +12,16 @@ export default async function TopicsPage() {
   const topics = await listTopics(await requireScope());
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_22rem]">
-      <section aria-labelledby="topics-heading">
-        <h1 id="topics-heading" className="mb-6 text-3xl font-semibold tracking-tight">Topics</h1>
-        <TopicList topics={topics} />
-      </section>
-      <section aria-labelledby="new-topic-heading" className="h-fit rounded-xl border bg-card p-6">
-        <h2 id="new-topic-heading" className="mb-4 text-lg font-semibold">New topic</h2>
-        <TopicForm action={createTopicAction} />
-      </section>
-    </div>
+    <>
+      <PageHeader title="Topics" description="Group your goals by subject, such as React or SQL." />
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <section aria-label="Your topics">
+          <TopicList topics={topics} />
+        </section>
+        <Panel title="New topic" id="new-topic-heading" className="h-fit">
+          <TopicForm action={createTopicAction} />
+        </Panel>
+      </div>
+    </>
   );
 }
